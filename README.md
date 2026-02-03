@@ -5,7 +5,6 @@ An **unofficial** open-source package manager for Odin.
 Principles:
 - GitHub-only
 - Vendoring-first
-- Boring by design
 
 ## Dependency Syntax
 
@@ -106,6 +105,37 @@ mv ./odpkg ~/.local/bin/
 
 Optional install to PATH (Windows):
 Add the folder containing `odpkg.exe` to PATH using System Environment Variables.
+
+## Install From Release (Quick)
+
+macOS:
+
+```bash
+VERSION=v0.1.0
+ASSET=odpkg-macos-latest
+curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
+chmod +x odpkg
+./odpkg --help
+```
+
+Linux:
+
+```bash
+VERSION=v0.1.0
+ASSET=odpkg-ubuntu-latest
+curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
+chmod +x odpkg
+./odpkg --help
+```
+
+Windows (PowerShell):
+
+```powershell
+$version = "v0.1.0"
+$asset = "odpkg-windows-latest.exe"
+Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
+.\odpkg.exe --help
+```
 
 ## Build
 
