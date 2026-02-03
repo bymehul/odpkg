@@ -137,6 +137,26 @@ Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$vers
 .\odpkg.exe --help
 ```
 
+Note: If you run it as `./odpkg` (macOS/Linux) or `.\odpkg.exe` (Windows), that only works in the current folder. To use `odpkg` anywhere, move it into a directory on your `PATH` or add the folder to PATH.
+
+Add to PATH (macOS/Linux, bash/zsh):
+
+```bash
+mkdir -p ~/.local/bin
+mv ./odpkg ~/.local/bin/
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+# or for zsh:
+# echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+```
+
+Add to PATH (Windows PowerShell):
+
+```powershell
+New-Item -ItemType Directory -Path "$env:USERPROFILE\bin" -Force | Out-Null
+Move-Item .\odpkg.exe "$env:USERPROFILE\bin\odpkg.exe"
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\bin", "User")
+```
+
 ## Build
 
 ```bash
