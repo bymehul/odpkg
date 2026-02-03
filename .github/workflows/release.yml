@@ -75,7 +75,9 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
-          odin build src -out:odpkg.exe
+          set ODIN_EXE=%GITHUB_WORKSPACE%\Odin\odin.exe
+          if not exist "%ODIN_EXE%" set ODIN_EXE=%GITHUB_WORKSPACE%\Odin\bin\odin.exe
+          "%ODIN_EXE%" build src -out:odpkg.exe
           mkdir dist
           move odpkg.exe dist\odpkg-${{ matrix.os }}.exe
 
