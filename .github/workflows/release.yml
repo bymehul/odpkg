@@ -54,7 +54,15 @@ jobs:
           call "%VS%\VC\Auxiliary\Build\vcvars64.bat"
           cd Odin
           build.bat release
-          echo %GITHUB_WORKSPACE%\Odin>>%GITHUB_PATH%
+          echo %GITHUB_WORKSPACE%\Odin>>"%GITHUB_PATH%"
+          echo %GITHUB_WORKSPACE%\Odin\bin>>"%GITHUB_PATH%"
+
+      - name: Verify Odin (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+        run: |
+          where odin
+          odin version
 
       - name: Build odpkg (Unix)
         if: matrix.os != 'windows-latest'
