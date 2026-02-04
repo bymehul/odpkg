@@ -67,7 +67,7 @@ config_roundtrip :: proc(t: ^testing.T) {
 
     cfg := Config{
         name = strings.clone("demo"),
-        version = strings.clone("0.1.0"),
+        version = strings.clone("0.2.0"),
         vendor_dir = strings.clone("third_party"),
     }
     dep := Dep{
@@ -92,7 +92,7 @@ config_roundtrip :: proc(t: ^testing.T) {
     defer config_free(&cfg2)
 
     testing.expect(t, cfg2.name == "demo")
-    testing.expect(t, cfg2.version == "0.1.0")
+    testing.expect(t, cfg2.version == "0.2.0")
     testing.expect(t, cfg2.vendor_dir == "third_party")
     testing.expect(t, len(cfg2.deps) == 1)
     if len(cfg2.deps) == 1 {
@@ -135,4 +135,23 @@ read_config_inline_dep :: proc(t: ^testing.T) {
         testing.expect(t, cfg.deps[0].repo == "raysan5/raylib")
         testing.expect(t, cfg.deps[0].ref == "v5.0")
     }
+}
+
+@(test)
+parse_registry_json_basic :: proc(t: ^testing.T) {
+    data := "[{\"id\":1,\"slug\":\"tempo\",\"display_name\":\"tempo\",\"description\":\"templating\",\"type\":\"library\",\"status\":\"in_work\",\"repository_url\":\"https://github.com/kalsprite/tempo\",\"license\":\"BSD-3\"},{\"id\":2,\"slug\":\"odin-dbus\",\"display_name\":\"odin-dbus\",\"description\":\"dbus\",\"type\":\"library\",\"status\":\"ready\",\"repository_url\":\"https://github.com/A1029384756/odin-dbus\",\"license\":\"MIT\"}]"
+
+    pkgs, ok := parse_registry_json(data)
+    testing.expect(t, ok)
+    testing.expect(t, len(pkgs) == 2)
+    if len(pkgs) >= 1 {
+        testing.expect(t, pkgs[0].slug == "tempo")
+        testing.expect(t, pkgs[0].repository_url == "https://github.com/kalsprite/tempo")
+        testing.expect(t, pkgs[0].status == "in_work")
+    }
+    if len(pkgs) >= 2 {
+        testing.expect(t, pkgs[1].slug == "odin-dbus")
+        testing.expect(t, pkgs[1].license == "MIT")
+    }
+    free_registry_packages(&pkgs)
 }

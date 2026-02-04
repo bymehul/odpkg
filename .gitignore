@@ -1,3 +1,4 @@
+# Non-necessary files
 # Build outputs
 odpkg
 odpkg.exe
@@ -22,3 +23,6 @@ odpkg.lock
 # OS files
 .DS_Store
 Thumbs.db
+
+
+node_modules/

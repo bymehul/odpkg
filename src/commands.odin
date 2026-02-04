@@ -28,7 +28,7 @@ cmd_init :: proc(args: []string) {
 
     cfg := Config{
         name = name,
-        version = strings.clone("0.1.0"),
+        version = strings.clone("0.2.0"),
         vendor_dir = strings.clone("vendor"),
     }
     defer config_free(&cfg)
@@ -129,24 +129,55 @@ cmd_remove :: proc(args: []string) {
     fmt.println("Removed", name)
 }
 
-cmd_list :: proc() {
+cmd_list :: proc(args: []string) {
+    list_registry := false
+    list_deps := false
+    refresh := false
+
+    for arg in args {
+        switch arg {
+        case "--registry":
+            list_registry = true
+        case "--deps":
+            list_deps = true
+        case "--refresh":
+            refresh = true
+        }
+    }
+
+    if list_registry && list_deps {
+        fmt.eprintln("Use only one of --registry or --deps.")
+        return
+    }
+
+    if list_registry {
+        list_registry_packages(refresh)
+        return
+    }
+
     cfg, ok_cfg := read_config(CONFIG_FILE)
     if !ok_cfg {
-        fmt.eprintln("Missing odpkg.toml. Run 'odpkg init' first.")
+        // No local config; fall back to registry list.
+        list_registry_packages(refresh)
         return
     }
     defer config_free(&cfg)
 
-    if len(cfg.deps) == 0 {
-        fmt.println("No dependencies.")
+    if list_deps || len(cfg.deps) > 0 {
+        if len(cfg.deps) == 0 {
+            fmt.println("No dependencies.")
+            return
+        }
+        for dep in cfg.deps {
+            spec := format_dep_spec(dep)
+            fmt.printf("%s = %s\n", dep.name, spec)
+            delete(spec)
+        }
         return
     }
 
-    for dep in cfg.deps {
-        spec := format_dep_spec(dep)
-        fmt.printf("%s = %s\n", dep.name, spec)
-        delete(spec)
-    }
+    // Default to registry list when nothing local is defined.
+    list_registry_packages(refresh)
 }
 
 cmd_install :: proc() {
