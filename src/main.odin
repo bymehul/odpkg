@@ -28,6 +28,8 @@ main :: proc() {
         cmd_update()
     case "list", "ls":
         cmd_list(args[2:])
+    case "search":
+        cmd_search(args[2:])
     case:
         fmt.eprintln("Unknown command:", cmd)
         print_usage()
@@ -40,14 +42,15 @@ print_usage :: proc() {
     fmt.println("Usage:")
     fmt.println("  odpkg init [name]")
     fmt.println("  odpkg add <repo[@ref]> [alias]")
+    fmt.println("  odpkg add --registry <slug> [alias]")
     fmt.println("  odpkg remove <alias>")
     fmt.println("  odpkg install")
     fmt.println("  odpkg update")
     fmt.println("  odpkg list [--registry | --deps] [--refresh]")
+    fmt.println("  odpkg search <query> [--refresh]")
     fmt.println("  odpkg version")
     fmt.println("")
     fmt.println("Notes:")
     fmt.println("  - GitHub-only")
     fmt.println("  - Vendoring-first (installs into vendor/)")
-    fmt.println("  - Registry list requires curl in PATH")
 }

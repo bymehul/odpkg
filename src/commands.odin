@@ -45,19 +45,85 @@ cmd_init :: proc(args: []string) {
 cmd_add :: proc(args: []string) {
     if len(args) < 1 {
         fmt.eprintln("Usage: odpkg add <repo[@ref]> [alias]")
+        fmt.eprintln("       odpkg add --registry <slug> [alias]")
         return
     }
 
-    repo_spec := args[0]
+    // Check for --registry flag.
+    registry_mode := false
+    slug := ""
     alias := ""
-    if len(args) > 1 {
-        alias = args[1]
+    repo_spec := ""
+
+    i := 0
+    for i < len(args) {
+        if args[i] == "--registry" {
+            registry_mode = true
+            i += 1
+            if i < len(args) {
+                slug = args[i]
+                i += 1
+            }
+        } else if repo_spec == "" {
+            repo_spec = args[i]
+            i += 1
+        } else if alias == "" {
+            alias = args[i]
+            i += 1
+        } else {
+            i += 1
+        }
     }
 
-    repo, ref, ok_repo := parse_repo_spec(repo_spec)
-    if !ok_repo {
-        fmt.eprintln("Invalid repo spec. Use owner/repo or github.com/owner/repo.")
-        return
+    repo := ""
+    ref := ""
+
+    if registry_mode {
+        if slug == "" {
+            fmt.eprintln("Usage: odpkg add --registry <slug> [alias]")
+            return
+        }
+        // Lookup slug in registry.
+        pkg, found := find_registry_package(slug, false)
+        if !found {
+            fmt.eprintln("Package not found in registry:", slug)
+            fmt.eprintln("  Hint: Try 'odpkg list --registry --refresh' to update cache")
+            return
+        }
+        defer {
+            if pkg.slug != "" do delete(pkg.slug)
+            if pkg.display_name != "" do delete(pkg.display_name)
+            if pkg.description != "" do delete(pkg.description)
+            if pkg.type != "" do delete(pkg.type)
+            if pkg.status != "" do delete(pkg.status)
+            if pkg.repository_url != "" do delete(pkg.repository_url)
+            if pkg.license != "" do delete(pkg.license)
+        }
+
+        // Extract repo from repository_url.
+        parsed_repo, parsed_ref, ok := parse_repo_spec(pkg.repository_url)
+        if !ok {
+            fmt.eprintln("Invalid repository URL in registry:", pkg.repository_url)
+            return
+        }
+        repo = parsed_repo
+        ref = parsed_ref
+        if alias == "" {
+            alias = slug
+        }
+    } else {
+        if repo_spec == "" {
+            fmt.eprintln("Usage: odpkg add <repo[@ref]> [alias]")
+            return
+        }
+        parsed_repo, parsed_ref, ok := parse_repo_spec(repo_spec)
+        if !ok {
+            fmt.eprintln("Invalid repo spec. Use owner/repo or github.com/owner/repo.")
+            fmt.eprintln("  Example: odpkg add github.com/odin-lang/Odin@v1.0.0")
+            return
+        }
+        repo = parsed_repo
+        ref = parsed_ref
     }
 
     if alias == "" {
@@ -92,6 +158,24 @@ cmd_add :: proc(args: []string) {
     }
 
     fmt.println("Added", alias)
+}
+
+cmd_search :: proc(args: []string) {
+    if len(args) < 1 {
+        fmt.eprintln("Usage: odpkg search <query>")
+        return
+    }
+
+    query := args[0]
+    refresh := false
+
+    for i := 1; i < len(args); i += 1 {
+        if args[i] == "--refresh" {
+            refresh = true
+        }
+    }
+
+    search_registry_packages(query, refresh)
 }
 
 cmd_remove :: proc(args: []string) {
@@ -202,36 +286,14 @@ cmd_install :: proc() {
         return
     }
 
-    // Update always re-resolves refs from odpkg.toml.
+    // Fresh install re-resolves refs from odpkg.toml.
     resolved := make([dynamic]Resolved_Dep)
     defer free_resolved_list(&resolved)
 
-    for dep in cfg.deps {
-        path := filepath.join([]string{cfg.vendor_dir, dep.name}) or_continue
+    installed := make(map[string]bool)
+    defer delete(installed)
 
-        if os.exists(path) && os.is_dir(path) {
-            fmt.println("Exists:", dep.name)
-        } else {
-            if !clone_dep(dep, path) {
-                fmt.eprintln("Failed to install:", dep.name)
-                delete(path)
-                continue
-            }
-        }
-
-        commit := git_rev_parse(path)
-        r := Resolved_Dep{
-            dep = Dep{
-                name = strings.clone(dep.name),
-                repo = strings.clone(dep.repo),
-                ref  = strings.clone(dep.ref),
-            },
-            commit = strings.clone(commit),
-        }
-        delete(commit)
-        delete(path)
-        append(&resolved, r)
-    }
+    install_deps_recursive(cfg.deps[:], cfg.vendor_dir, &resolved, &installed, 0)
 
     if len(resolved) > 0 {
         _ = write_lock(LOCK_FILE, resolved[:])
@@ -255,8 +317,12 @@ cmd_update :: proc() {
     resolved := make([dynamic]Resolved_Dep)
     defer free_resolved_list(&resolved)
 
+    installed := make(map[string]bool)
+    defer delete(installed)
+
     for dep in cfg.deps {
-        path := filepath.join([]string{cfg.vendor_dir, dep.name}) or_continue
+        path, path_err := filepath.join([]string{cfg.vendor_dir, dep.name})
+        if path_err != nil do continue
 
         if !os.exists(path) || !os.is_dir(path) {
             fmt.println("Missing:", dep.name, "(installing)")
@@ -270,6 +336,7 @@ cmd_update :: proc() {
         }
 
         commit := git_rev_parse(path)
+        pkg_hash := compute_dir_hash(path)
         r := Resolved_Dep{
             dep = Dep{
                 name = strings.clone(dep.name),
@@ -277,8 +344,15 @@ cmd_update :: proc() {
                 ref  = strings.clone(dep.ref),
             },
             commit = strings.clone(commit),
+            hash   = strings.concatenate({"sha256:", pkg_hash}),
         }
         delete(commit)
+        delete(pkg_hash)
+        installed[dep.name] = true
+
+        // Check for transitive dependencies.
+        check_transitive_deps(path, cfg.vendor_dir, &resolved, &installed)
+
         delete(path)
         append(&resolved, r)
     }
@@ -288,11 +362,86 @@ cmd_update :: proc() {
     }
 }
 
-install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep) {
-    for item in deps {
-        path := filepath.join([]string{vendor_dir, item.dep.name}) or_continue
+// Install dependencies recursively, handling transitive deps.
+install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, depth: int) {
+    if depth > 10 {
+        fmt.eprintln("Warning: Maximum dependency depth reached (possible cycle)")
+        return
+    }
+
+    for dep in deps {
+        if dep.name in installed^ do continue
+
+        path, path_err := filepath.join([]string{vendor_dir, dep.name})
+        if path_err != nil do continue
 
         if os.exists(path) && os.is_dir(path) {
+            fmt.println("Exists:", dep.name)
+        } else {
+            if !clone_dep(dep, path) {
+                fmt.eprintln("Failed to install:", dep.name)
+                delete(path)
+                continue
+            }
+            fmt.println("Installed:", dep.name)
+        }
+
+        commit := git_rev_parse(path)
+        pkg_hash := compute_dir_hash(path)
+        r := Resolved_Dep{
+            dep = Dep{
+                name = strings.clone(dep.name),
+                repo = strings.clone(dep.repo),
+                ref  = strings.clone(dep.ref),
+            },
+            commit = strings.clone(commit),
+            hash   = strings.concatenate({"sha256:", pkg_hash}),
+        }
+        delete(commit)
+        delete(pkg_hash)
+        installed^[dep.name] = true
+        append(resolved, r)
+
+        // Check for transitive dependencies.
+        check_transitive_deps(path, vendor_dir, resolved, installed)
+
+        delete(path)
+    }
+}
+
+// Check if installed package has its own odpkg.toml and install those deps.
+check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool) {
+    sub_config_path, join_err := filepath.join([]string{pkg_path, CONFIG_FILE})
+    if join_err != nil do return
+    defer delete(sub_config_path)
+
+    if !os.exists(sub_config_path) do return
+
+    sub_cfg, ok := read_config(sub_config_path)
+    if !ok do return
+    defer config_free(&sub_cfg)
+
+    if len(sub_cfg.deps) > 0 {
+        base_name := filepath.base(pkg_path)
+        fmt.println("  Found transitive deps in:", base_name)
+        install_deps_recursive(sub_cfg.deps[:], vendor_dir, resolved, installed, 1)
+    }
+}
+
+install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep) {
+    for item in deps {
+        path, path_err := filepath.join([]string{vendor_dir, item.dep.name})
+        if path_err != nil do continue
+
+        if os.exists(path) && os.is_dir(path) {
+            // Verify hash if present.
+            if item.hash != "" {
+                if !verify_hash(path, item.hash) {
+                    fmt.eprintln("Warning: Hash mismatch for", item.dep.name)
+                    fmt.eprintln("  Expected:", item.hash)
+                    fmt.eprintln("  Hint: Run 'odpkg update' to refresh")
+                }
+            }
             if !update_dep_to_commit(path, item.commit) {
                 fmt.eprintln("Failed to checkout:", item.dep.name)
             }
@@ -314,6 +463,7 @@ free_resolved_list :: proc(list: ^[dynamic]Resolved_Dep) {
         if r.dep.repo != "" do delete(r.dep.repo)
         if r.dep.ref != "" do delete(r.dep.ref)
         if r.commit != "" do delete(r.commit)
+        if r.hash != "" do delete(r.hash)
     }
     delete(list^)
 }

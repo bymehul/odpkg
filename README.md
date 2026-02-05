@@ -28,7 +28,7 @@ odin build src -out:odpkg
 Linux/macOS:
 
 ```bash
-VERSION=v0.2.0
+VERSION=v0.3.0
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -38,7 +38,7 @@ chmod +x odpkg
 Windows (PowerShell):
 
 ```powershell
-$version = "v0.2.0"
+$version = "v0.3.0"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help
@@ -77,17 +77,19 @@ Windows (permanent, PowerShell):
 ```bash
 odpkg init [name]
 odpkg add <repo[@ref]> [alias]
+odpkg add --registry <slug> [alias]
 odpkg remove <alias>
 odpkg install
 odpkg update
 odpkg list [--registry | --deps] [--refresh]
+odpkg search <query> [--refresh]
 odpkg version
 ```
 
-## Registry List
+## Registry
 
-`odpkg list --registry` fetches the public registry and caches it.  
-This uses `curl` under the hood, so make sure `curl` is in PATH.
+`odpkg list --registry` fetches the public registry and caches it.
+`odpkg search <query>` filters registry packages by name or description.
 
 ## Docs
 

@@ -13,17 +13,18 @@ odpkg install
 ## Requirements
 
 - `git` in PATH
-- `curl` in PATH (used for registry list)
 
 ## Commands
 
 ```bash
 odpkg init [name]
 odpkg add <repo[@ref]> [alias]
+odpkg add --registry <slug> [alias]
 odpkg remove <alias>
 odpkg install
 odpkg update
 odpkg list [--registry | --deps] [--refresh]
+odpkg search <query> [--refresh]
 odpkg version
 ```
 
@@ -31,6 +32,7 @@ odpkg version
 
 - `odpkg init` creates `odpkg.toml` in the current folder.
 - `odpkg add` adds or updates a dependency entry in `odpkg.toml`.
+- `odpkg add --registry <slug>` looks up a package in the registry by slug.
 - `odpkg remove` removes a dependency by alias name.
 - `odpkg install` installs into `vendor/` and writes `odpkg.lock`.
 - `odpkg update` re-resolves refs and updates `odpkg.lock`.
@@ -38,6 +40,7 @@ odpkg version
 - `odpkg list --deps` forces local deps output from `odpkg.toml`.
 - `odpkg list --registry` forces registry output.
 - `odpkg list --registry --refresh` re-fetches registry data.
+- `odpkg search <query>` filters registry by name/slug/description.
 
 ## Config File (`odpkg.toml`)
 
@@ -128,18 +131,17 @@ Force refresh:
 odpkg list --registry --refresh
 ```
 
-## Known Constraints (v0.1)
+## Known Constraints (v0.3)
 
 - GitHub-only sources (no GitLab/Bitbucket/self-hosted yet).
 - Vendoring-first installs into `vendor/` (no global cache).
 - No subdir packages (repo root only).
 - Minimal TOML parsing.
-- No checksum/verification yet.
 - No private repo auth flows yet.
 
 ## Troubleshooting
 
-- If `odpkg list --registry` fails, ensure `curl` is installed and in PATH.
+- If `odpkg list --registry` fails, check your network connection.
 - If `odpkg install` fails, verify `git` is installed and the repo URL is correct.
 
 ## License

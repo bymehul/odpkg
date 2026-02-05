@@ -9,6 +9,10 @@ clone_dep :: proc(dep: Dep, dest: string) -> bool {
     // No ref means follow the default branch.
     if dep.ref == "" {
         ok := run_cmd([]string{"git", "clone", url, dest}, "")
+        if !ok {
+            fmt.eprintln("  Failed to clone:", dep.repo)
+            fmt.eprintln("  Hint: Check network connection or verify the repository exists")
+        }
         delete(url)
         return ok
     }
@@ -17,7 +21,14 @@ clone_dep :: proc(dep: Dep, dest: string) -> bool {
     if is_commit_hash(dep.ref) {
         ok := run_cmd([]string{"git", "clone", url, dest}, "")
         if ok {
-            _ = run_cmd([]string{"git", "-C", dest, "checkout", dep.ref}, "")
+            checkout_ok := run_cmd([]string{"git", "-C", dest, "checkout", dep.ref}, "")
+            if !checkout_ok {
+                fmt.eprintln("  Failed to checkout commit:", dep.ref)
+                fmt.eprintln("  Hint: Verify the commit hash exists in the repository")
+            }
+        } else {
+            fmt.eprintln("  Failed to clone:", dep.repo)
+            fmt.eprintln("  Hint: Check network connection or verify the repository URL")
         }
         delete(url)
         return ok
@@ -30,10 +41,18 @@ clone_dep :: proc(dep: Dep, dest: string) -> bool {
         return true
     }
 
+    // Fallback: full clone then checkout.
     _ = os2.remove_all(dest)
     ok = run_cmd([]string{"git", "clone", url, dest}, "")
     if ok {
-        _ = run_cmd([]string{"git", "-C", dest, "checkout", dep.ref}, "")
+        checkout_ok := run_cmd([]string{"git", "-C", dest, "checkout", dep.ref}, "")
+        if !checkout_ok {
+            fmt.eprintln("  Failed to checkout ref:", dep.ref)
+            fmt.eprintln("  Hint: Verify the tag/branch exists. Run: git ls-remote", url)
+        }
+    } else {
+        fmt.eprintln("  Failed to clone:", dep.repo)
+        fmt.eprintln("  Hint: Check network connection or verify the repository exists")
     }
     delete(url)
     return ok

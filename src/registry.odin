@@ -99,47 +99,130 @@ write_registry_cache :: proc(path: string, payload: string) -> bool {
 }
 
 fetch_registry :: proc() -> (string, bool) {
-    if !curl_available() {
-        fmt.eprintln("curl was not found in PATH. Please install curl and retry.")
+    data, ok := http_get("https://api.pkg-odin.org/packages")
+    if !ok {
+        fmt.eprintln("Failed to fetch registry from api.pkg-odin.org")
+        fmt.eprintln("  Hint: Check your network connection")
         return strings.clone(""), false
     }
-    cmd := []string{"curl", "-fsSL", "https://api.pkg-odin.org/packages"}
-    out, ok := run_cmd_capture(cmd, "")
-    return out, ok
+    return data, true
 }
 
-run_cmd_capture :: proc(args: []string, cwd: string) -> (string, bool) {
-    desc := os2.Process_Desc{
-        command = args,
-        working_dir = cwd,
+// Search registry packages by query string.
+// Matches against slug, display_name, and description.
+search_registry_packages :: proc(query: string, refresh: bool) {
+    cache_file := registry_cache_path()
+    if cache_file == "" {
+        fmt.eprintln("Unable to locate a cache directory.")
+        return
     }
-    state, stdout, stderr, err := os2.process_exec(desc, context.allocator)
-    if err != nil || !state.exited || state.exit_code != 0 {
-        if len(stderr) > 0 {
-            fmt.eprintln(string(stderr))
+    defer delete(cache_file)
+
+    data := ""
+    if !refresh {
+        cached, ok := read_cached_registry(cache_file)
+        if ok {
+            data = cached
         }
-        delete(stdout)
-        delete(stderr)
-        return strings.clone(""), false
     }
 
-    out := strings.clone(string(stdout))
-    delete(stdout)
-    delete(stderr)
-    return out, true
+    if data == "" {
+        fetched, ok := fetch_registry()
+        if !ok {
+            fmt.eprintln("Failed to fetch registry.")
+            return
+        }
+        data = fetched
+        _ = write_registry_cache(cache_file, data)
+    }
+
+    packages, ok := parse_registry_json(data)
+    delete(data)
+    if !ok {
+        fmt.eprintln("Failed to parse registry data.")
+        return
+    }
+
+    if len(packages) == 0 {
+        fmt.println("No packages found.")
+        free_registry_packages(&packages)
+        return
+    }
+
+    query_lower := strings.to_lower(query, context.temp_allocator)
+    found := 0
+
+    for pkg in packages {
+        slug_lower := strings.to_lower(pkg.slug, context.temp_allocator)
+        name_lower := strings.to_lower(pkg.display_name, context.temp_allocator)
+        desc_lower := strings.to_lower(pkg.description, context.temp_allocator)
+
+        if strings.contains(slug_lower, query_lower) ||
+           strings.contains(name_lower, query_lower) ||
+           strings.contains(desc_lower, query_lower) {
+            fmt.printf("%s | %s | %s\n", pkg.slug, pkg.repository_url, pkg.status)
+            found += 1
+        }
+    }
+
+    if found == 0 {
+        fmt.println("No packages matching:", query)
+    }
+
+    free_registry_packages(&packages)
 }
 
-curl_available :: proc() -> bool {
-    desc := os2.Process_Desc{
-        command = []string{"curl", "--version"},
+// Find a package by slug in the registry.
+find_registry_package :: proc(slug: string, refresh: bool) -> (RegistryPackage, bool) {
+    cache_file := registry_cache_path()
+    if cache_file == "" {
+        return RegistryPackage{}, false
     }
-    state, stdout, stderr, err := os2.process_exec(desc, context.allocator)
-    delete(stdout)
-    delete(stderr)
-    if err != nil {
-        return false
+    defer delete(cache_file)
+
+    data := ""
+    if !refresh {
+        cached, ok := read_cached_registry(cache_file)
+        if ok {
+            data = cached
+        }
     }
-    return state.exited && state.exit_code == 0
+
+    if data == "" {
+        fetched, ok := fetch_registry()
+        if !ok {
+            return RegistryPackage{}, false
+        }
+        data = fetched
+        _ = write_registry_cache(cache_file, data)
+    }
+
+    packages, ok := parse_registry_json(data)
+    delete(data)
+    if !ok {
+        return RegistryPackage{}, false
+    }
+
+    for pkg in packages {
+        if pkg.slug == slug {
+            // Clone the package before freeing the list.
+            result := RegistryPackage{
+                id             = pkg.id,
+                slug           = strings.clone(pkg.slug),
+                display_name   = strings.clone(pkg.display_name),
+                description    = strings.clone(pkg.description),
+                type           = strings.clone(pkg.type),
+                status         = strings.clone(pkg.status),
+                repository_url = strings.clone(pkg.repository_url),
+                license        = strings.clone(pkg.license),
+            }
+            free_registry_packages(&packages)
+            return result, true
+        }
+    }
+
+    free_registry_packages(&packages)
+    return RegistryPackage{}, false
 }
 
 parse_registry_json :: proc(data: string) -> ([dynamic]RegistryPackage, bool) {

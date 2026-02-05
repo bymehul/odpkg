@@ -62,6 +62,9 @@ read_lock :: proc(path: string) -> ([dynamic]Resolved_Dep, bool) {
         case "commit":
             if current.commit != "" do delete(current.commit)
             current.commit = strings.clone(value)
+        case "hash":
+            if current.hash != "" do delete(current.hash)
+            current.hash = strings.clone(value)
         }
     }
 
@@ -92,6 +95,12 @@ write_lock :: proc(path: string, deps: []Resolved_Dep) -> bool {
         line = strings.concatenate({"commit = \"", d.commit, "\"\n"})
         strings.write_string(&sb, line)
         delete(line)
+
+        if d.hash != "" {
+            line = strings.concatenate({"hash = \"", d.hash, "\"\n"})
+            strings.write_string(&sb, line)
+            delete(line)
+        }
     }
 
     content := strings.to_string(sb)
@@ -117,6 +126,7 @@ clear_resolved :: proc(item: ^Resolved_Dep) {
     if item.dep.repo != "" do delete(item.dep.repo)
     if item.dep.ref != "" do delete(item.dep.ref)
     if item.commit != "" do delete(item.commit)
+    if item.hash != "" do delete(item.hash)
 }
 
 normalize_repo :: proc(value: string) -> (string, bool) {

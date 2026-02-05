@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>odpkg - Odin Package Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Top Navigation -->
+    <header class="navbar">
+        <div class="navbar-content">
+            <div class="logo">
+                <span class="logo-icon">📦</span>
+                <span class="logo-text">odpkg</span>
+                <span class="version-badge">v0.3.0</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#" class="nav-link active">Docs</a>
+                <a href="https://github.com/bymehul/odpkg" class="nav-link" target="_blank">GitHub</a>
+            </nav>
+            <div class="nav-actions">
+                <button class="search-btn" onclick="toggleSearch()">
+                    <span>Search docs...</span>
+                    <kbd>⌘K</kbd>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <nav class="sidebar-nav">
+                <div class="nav-group">
+                    <h3 class="nav-group-title">Get Started</h3>
+                    <a href="#quickstart" class="nav-item active">Quickstart</a>
+                    <a href="#installation" class="nav-item">Installation</a>
+                    <a href="#requirements" class="nav-item">Requirements</a>
+                </div>
+                <div class="nav-group">
+                    <h3 class="nav-group-title">Commands</h3>
+                    <a href="#init" class="nav-item">init</a>
+                    <a href="#add" class="nav-item">add</a>
+                    <a href="#remove" class="nav-item">remove</a>
+                    <a href="#install" class="nav-item">install</a>
+                    <a href="#update" class="nav-item">update</a>
+                    <a href="#list" class="nav-item">list</a>
+                    <a href="#search" class="nav-item">search</a>
+                    <a href="#version" class="nav-item">version</a>
+                    <a href="#help" class="nav-item">help</a>
+                </div>
+                <div class="nav-group">
+                    <h3 class="nav-group-title">Configuration</h3>
+                    <a href="#config" class="nav-item">odpkg.toml</a>
+                    <a href="#lockfile" class="nav-item">odpkg.lock</a>
+                    <a href="#dependencies" class="nav-item">Dependencies</a>
+                </div>
+                <div class="nav-group">
+                    <h3 class="nav-group-title">Features</h3>
+                    <a href="#registry" class="nav-item">Registry</a>
+                    <a href="#transitive" class="nav-item">Transitive Deps</a>
+                    <a href="#integrity" class="nav-item">Integrity</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <article>
+                <!-- Quickstart Section -->
+                <section id="quickstart" class="section">
+                    <div class="section-header">
+                        <span class="section-label">Get Started</span>
+                        <h1>Quickstart</h1>
+                    </div>
+                    <p class="intro">odpkg is an <strong>unofficial</strong> Odin package manager focused on simplicity
+                        and vendoring. Get up and running in under a minute.</p>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>Terminal</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre><code><span class="prompt">$</span> odpkg init
+<span class="prompt">$</span> odpkg add github.com/owner/repo@v1.0.0
+<span class="prompt">$</span> odpkg install</code></pre>
+                    </div>
+
+                    <p>That's it! Your dependencies are now in <code>vendor/</code> and tracked in
+                        <code>odpkg.lock</code>.</p>
+                </section>
+
+                <!-- Installation Section -->
+                <section id="installation" class="section">
+                    <h2>Installation</h2>
+                    <p>Download the latest binary for your platform:</p>
+
+                    <div class="tabs">
+                        <button class="tab active" onclick="showTab('linux')">Linux/macOS</button>
+                        <button class="tab" onclick="showTab('windows')">Windows</button>
+                    </div>
+
+                    <div id="linux" class="tab-content active">
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>Bash</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>VERSION=v0.3.0
+ASSET=odpkg-ubuntu-latest
+curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
+chmod +x odpkg
+./odpkg --help</code></pre>
+                        </div>
+                    </div>
+
+                    <div id="windows" class="tab-content">
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>PowerShell</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>$version = "v0.3.0"
+$asset = "odpkg-windows-latest.exe"
+Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
+.\odpkg.exe --help</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Requirements Section -->
+                <section id="requirements" class="section">
+                    <h2>Requirements</h2>
+                    <div class="callout">
+                        <div class="callout-icon">ℹ️</div>
+                        <div class="callout-content">
+                            <strong>Only git is required!</strong>
+                            <p>odpkg uses native HTTP via Odin's <code>core:net</code> - no curl or wget needed.</p>
+                        </div>
+                    </div>
+                    <ul class="requirements-list">
+                        <li><code>git</code> in PATH</li>
+                    </ul>
+                </section>
+
+                <!-- Commands -->
+                <section id="init" class="section">
+                    <h2>odpkg init</h2>
+                    <p>Initialize a new project with <code>odpkg.toml</code>.</p>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg init [name]</code></pre>
+                    </div>
+                    <p>Creates a configuration file in the current directory:</p>
+                    <div class="code-block">
+                        <div class="code-header"><span>odpkg.toml</span></div>
+                        <pre><code>[odpkg]
+name = "my-project"
+version = "0.1.0"
+vendor_dir = "vendor"
+
+[dependencies]</code></pre>
+                    </div>
+                </section>
+
+                <section id="add" class="section">
+                    <h2>odpkg add</h2>
+                    <p>Add a dependency to your project.</p>
+
+                    <h3>From Repository</h3>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg add github.com/owner/repo@v1.0.0 [alias]
+<span class="prompt">$</span> odpkg add owner/repo              <span class="comment"># shorthand</span></code></pre>
+                    </div>
+
+                    <h3>From Registry</h3>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg add --registry tempo        <span class="comment"># looks up slug in registry</span>
+<span class="prompt">$</span> odpkg add --registry raylib rl    <span class="comment"># with custom alias</span></code></pre>
+                    </div>
+
+                    <div class="callout callout-tip">
+                        <div class="callout-icon">💡</div>
+                        <div class="callout-content">
+                            <strong>Tip:</strong> Use <code>odpkg search</code> to find package slugs!
+                        </div>
+                    </div>
+                </section>
+
+                <section id="remove" class="section">
+                    <h2>odpkg remove</h2>
+                    <p>Remove a dependency by its alias name.</p>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg remove raylib</code></pre>
+                    </div>
+                </section>
+
+                <section id="install" class="section">
+                    <h2>odpkg install</h2>
+                    <p>Install all dependencies into <code>vendor/</code>.</p>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg install</code></pre>
+                    </div>
+                    <ul>
+                        <li>Uses <code>odpkg.lock</code> if present (reproducible builds)</li>
+                        <li>Otherwise resolves from <code>odpkg.toml</code></li>
+                        <li>Automatically installs transitive dependencies</li>
+                        <li>Verifies SHA256 hashes for integrity</li>
+                    </ul>
+                </section>
+
+                <section id="update" class="section">
+                    <h2>odpkg update</h2>
+                    <p>Re-resolve refs and update <code>odpkg.lock</code>.</p>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg update</code></pre>
+                    </div>
+                    <p>Use this when you want to pull the latest commits for dependencies.</p>
+                </section>
+
+                <section id="list" class="section">
+                    <h2>odpkg list</h2>
+                    <p>List dependencies or browse the registry.</p>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg list                    <span class="comment"># local deps or registry</span>
+<span class="prompt">$</span> odpkg list --deps             <span class="comment"># force local deps</span>
+<span class="prompt">$</span> odpkg list --registry         <span class="comment"># browse registry</span>
+<span class="prompt">$</span> odpkg list --registry --refresh  <span class="comment"># re-fetch</span></code></pre>
+                    </div>
+                </section>
+
+                <section id="search" class="section">
+                    <h2>odpkg search</h2>
+                    <p>Search the package registry by name, slug, or description.</p>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg search json
+<span class="prompt">$</span> odpkg search template --refresh</code></pre>
+                    </div>
+                </section>
+
+                <section id="version" class="section">
+                    <h2>odpkg version</h2>
+                    <p>Print the current version of odpkg.</p>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg version
+odpkg 0.3.0</code></pre>
+                    </div>
+                    <p>Also available as <code>odpkg -v</code> or <code>odpkg --version</code>.</p>
+                </section>
+
+                <section id="help" class="section">
+                    <h2>odpkg help</h2>
+                    <p>Show usage information and available commands.</p>
+                    <div class="code-block">
+                        <pre><code><span class="prompt">$</span> odpkg help
+odpkg - Unofficial Odin package manager
+
+Usage:
+  odpkg init [name]
+  odpkg add &lt;repo[@ref]&gt; [alias]
+  odpkg add --registry &lt;slug&gt; [alias]
+  odpkg remove &lt;alias&gt;
+  odpkg install
+  odpkg update
+  odpkg list [--registry | --deps] [--refresh]
+  odpkg search &lt;query&gt; [--refresh]
+  odpkg version</code></pre>
+                    </div>
+                    <p>Also available as <code>odpkg -h</code> or <code>odpkg --help</code>.</p>
+                </section>
+
+                <!-- Configuration -->
+                <section id="config" class="section">
+                    <h2>odpkg.toml</h2>
+                    <p>The configuration file defines your project and dependencies.</p>
+                    <div class="code-block">
+                        <div class="code-header"><span>odpkg.toml</span></div>
+                        <pre><code>[odpkg]
+name = "my-game"
+version = "1.0.0"
+vendor_dir = "vendor"
+
+[dependencies]
+raylib = { repo = "raysan5/raylib", ref = "v5.0" }
+tempo = { repo = "kalsprite/tempo", ref = "main" }</code></pre>
+                    </div>
+                </section>
+
+                <section id="lockfile" class="section">
+                    <h2>odpkg.lock</h2>
+                    <p>The lockfile records exact commit hashes and SHA256 hashes for reproducible builds.</p>
+                    <div class="callout callout-warning">
+                        <div class="callout-icon">⚠️</div>
+                        <div class="callout-content">
+                            <strong>Do not edit manually!</strong>
+                            <p>The lockfile is auto-generated. Commit it to version control.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="dependencies" class="section">
+                    <h2>Dependency Syntax</h2>
+
+                    <h3>Structured (preferred)</h3>
+                    <div class="code-block">
+                        <pre><code>raylib = { repo = "raysan5/raylib", ref = "v5.0" }</code></pre>
+                    </div>
+
+                    <h3>Short form</h3>
+                    <div class="code-block">
+                        <pre><code>raylib = "github.com/raysan5/raylib@v5.0"</code></pre>
+                    </div>
+
+                    <table class="props-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>repo</code></td>
+                                <td>owner/repo, github.com/owner/repo, or full URL</td>
+                            </tr>
+                            <tr>
+                                <td><code>ref</code></td>
+                                <td>Tag, branch, or commit hash</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <!-- Features -->
+                <section id="registry" class="section">
+                    <h2>Package Registry</h2>
+                    <p>odpkg fetches packages from the official Odin registry:</p>
+                    <div class="code-block">
+                        <pre><code>https://api.pkg-odin.org/packages</code></pre>
+                    </div>
+                    <p>Registry data is cached locally:</p>
+                    <ul>
+                        <li><strong>Linux:</strong> <code>~/.cache/odpkg/packages.json</code></li>
+                        <li><strong>macOS:</strong> <code>~/Library/Caches/odpkg/packages.json</code></li>
+                        <li><strong>Windows:</strong> <code>%LOCALAPPDATA%\odpkg\packages.json</code></li>
+                    </ul>
+                </section>
+
+                <section id="transitive" class="section">
+                    <h2>Transitive Dependencies</h2>
+                    <p>odpkg automatically installs nested dependencies!</p>
+                    <p>If a package you install has its own <code>odpkg.toml</code>, those dependencies are installed
+                        too.</p>
+                    <div class="callout">
+                        <div class="callout-icon">🔄</div>
+                        <div class="callout-content">
+                            <strong>Cycle protection:</strong> Maximum depth of 10 to prevent infinite loops.
+                        </div>
+                    </div>
+                </section>
+
+                <section id="integrity" class="section">
+                    <h2>Integrity Verification</h2>
+                    <p>odpkg computes SHA256 hashes of installed packages and stores them in <code>odpkg.lock</code>.
+                    </p>
+                    <p>On subsequent installs, hashes are verified to detect corruption or tampering.</p>
+                    <div class="code-block">
+                        <div class="code-header"><span>odpkg.lock excerpt</span></div>
+                        <pre><code>[[deps]]
+name = "raylib"
+repo = "raysan5/raylib"
+ref = "v5.0"
+commit = "abc123..."
+hash = "sha256:e3b0c44298fc1c149..."</code></pre>
+                    </div>
+                </section>
+
+                <footer class="content-footer">
+                    <p>odpkg is licensed under the zlib License. Made with ❤️ for the Odin community.</p>
+                </footer>
+            </article>
+        </main>
+
+        <!-- Right Sidebar (TOC) -->
+        <aside class="toc">
+            <h4>On this page</h4>
+            <nav class="toc-nav">
+                <a href="#quickstart" class="toc-item">Quickstart</a>
+                <a href="#installation" class="toc-item">Installation</a>
+                <a href="#requirements" class="toc-item">Requirements</a>
+                <a href="#init" class="toc-item">init</a>
+                <a href="#add" class="toc-item">add</a>
+                <a href="#remove" class="toc-item">remove</a>
+                <a href="#install" class="toc-item">install</a>
+                <a href="#update" class="toc-item">update</a>
+                <a href="#list" class="toc-item">list</a>
+                <a href="#search" class="toc-item">search</a>
+                <a href="#version" class="toc-item">version</a>
+                <a href="#help" class="toc-item">help</a>
+                <a href="#config" class="toc-item">odpkg.toml</a>
+                <a href="#lockfile" class="toc-item">odpkg.lock</a>
+                <a href="#dependencies" class="toc-item">Dependencies</a>
+                <a href="#registry" class="toc-item">Registry</a>
+                <a href="#transitive" class="toc-item">Transitive Deps</a>
+                <a href="#integrity" class="toc-item">Integrity</a>
+            </nav>
+        </aside>
+    </div>
+
+    <!-- Search Modal -->
+    <div id="search-modal" class="modal hidden">
+        <div class="modal-content">
+            <input type="text" id="search-input" placeholder="Search docs...">
+            <div id="search-results"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
