@@ -93,7 +93,9 @@ odpkg version
 
 ## Docs
 
-See `docs.md` for full usage, config format, registry details, and troubleshooting.
+Online docs: [docs](https://bymehul.github.io/odpkg/)  
+Source docs: [docs.md](docs.md)
+
 
 ## License
 
