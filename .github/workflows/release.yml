@@ -27,13 +27,13 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang llvm lld
+          sudo apt-get install -y clang llvm lld libcurl4-openssl-dev libmbedtls-dev
 
       - name: Install deps (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           brew update
-          brew install llvm
+          brew install llvm mbedtls
 
       - name: Build Odin (Unix)
         if: matrix.os != 'windows-latest'
@@ -41,6 +41,9 @@ jobs:
           git clone https://github.com/odin-lang/Odin
           cd Odin
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            MBEDTLS_PREFIX="$(brew --prefix mbedtls)"
+            export LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$LIBRARY_PATH"
+            export DYLD_LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$DYLD_LIBRARY_PATH"
             LLVM_CONFIG="$(brew --prefix llvm)/bin/llvm-config" make release-native
           else
             make release-native
@@ -57,6 +60,11 @@ jobs:
       - name: Build odpkg (Unix)
         if: matrix.os != 'windows-latest'
         run: |
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            MBEDTLS_PREFIX="$(brew --prefix mbedtls)"
+            export LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$LIBRARY_PATH"
+            export DYLD_LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$DYLD_LIBRARY_PATH"
+          fi
           ODIN_EXE="$GITHUB_WORKSPACE/Odin/odin"
           if [ ! -x "$ODIN_EXE" ]; then
             ODIN_EXE="$GITHUB_WORKSPACE/Odin/bin/odin"

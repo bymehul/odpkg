@@ -4,11 +4,114 @@ import "core:net"
 import "core:strings"
 import "core:fmt"
 import "core:strconv"
+import c "core:c/libc"
+import "base:runtime"
+import curl "vendor:curl"
 
-// native http client using odin's core:net
-// uses net.resolve_ip4() for dns and tcp sockets for http/1.1*
+// HTTP client
+// - HTTP: native core:net
+// - HTTPS: libcurl (vendor:curl)
+
+Http_Buffer :: struct {
+    sb: strings.Builder,
+}
+
+curl_initialized := false
 
 http_get :: proc(url: string) -> (string, bool) {
+    if strings.has_prefix(url, "https://") {
+        data, ok := http_get_curl(url)
+        if !ok {
+            fmt.eprintln("HTTPS fetch failed.")
+            fmt.eprintln("  Hint: Ensure libcurl is installed on your system")
+            return strings.clone(""), false
+        }
+        return data, true
+    }
+
+    if strings.has_prefix(url, "http://") {
+        return http_get_native(url)
+    }
+
+    fmt.eprintln("Unsupported URL scheme:", url)
+    return strings.clone(""), false
+}
+
+curl_init_once :: proc() -> bool {
+    if curl_initialized do return true
+    if curl.global_init(curl.GLOBAL_DEFAULT) != curl.code.E_OK {
+        fmt.eprintln("Failed to initialize libcurl")
+        return false
+    }
+    curl_initialized = true
+    return true
+}
+
+http_write_cb :: proc "c" (buffer: [^]byte, size: c.size_t, nitems: c.size_t, outstream: rawptr) -> c.size_t {
+    context = runtime.default_context()
+    if outstream == nil do return 0
+    total := size * nitems
+    if total == 0 do return 0
+
+    buf := (^Http_Buffer)(outstream)
+    count := int(total)
+    strings.write_bytes(&buf.sb, buffer[:count])
+    return total
+}
+
+http_get_curl :: proc(url: string) -> (string, bool) {
+    if !curl_init_once() {
+        return strings.clone(""), false
+    }
+
+    handle := curl.easy_init()
+    if handle == nil {
+        fmt.eprintln("Failed to create curl handle")
+        return strings.clone(""), false
+    }
+    defer curl.easy_cleanup(handle)
+
+    ua := strings.concatenate({"odpkg/", VERSION})
+    defer delete(ua)
+
+    buf := Http_Buffer{sb = strings.builder_make()}
+    defer strings.builder_destroy(&buf.sb)
+
+    url_cstr, err_url := strings.clone_to_cstring(url, context.temp_allocator)
+    if err_url != nil {
+        fmt.eprintln("Failed to allocate URL")
+        return strings.clone(""), false
+    }
+    ua_cstr, err_ua := strings.clone_to_cstring(ua, context.temp_allocator)
+    if err_ua != nil {
+        fmt.eprintln("Failed to allocate User-Agent")
+        return strings.clone(""), false
+    }
+
+    _ = curl.easy_setopt(handle, curl.option.URL, url_cstr)
+    _ = curl.easy_setopt(handle, curl.option.USERAGENT, ua_cstr)
+    _ = curl.easy_setopt(handle, curl.option.FOLLOWLOCATION, c.long(1))
+    _ = curl.easy_setopt(handle, curl.option.WRITEFUNCTION, http_write_cb)
+    _ = curl.easy_setopt(handle, curl.option.WRITEDATA, &buf)
+
+    res := curl.easy_perform(handle)
+    if res != curl.code.E_OK {
+        fmt.eprintln("curl error:", curl.easy_strerror(res))
+        return strings.clone(""), false
+    }
+
+    status: c.long
+    _ = curl.easy_getinfo(handle, curl.INFO.RESPONSE_CODE, &status)
+    if status < 200 || status >= 300 {
+        fmt.eprintln("HTTP error:", status)
+        return strings.clone(""), false
+    }
+
+    out := strings.to_string(buf.sb)
+    return out, true
+}
+
+http_get_native :: proc(url: string) -> (string, bool) {
     host, path, port, ok := parse_http_url(url)
     if !ok {
         fmt.eprintln("Failed to parse URL:", url)
@@ -36,11 +139,13 @@ http_get :: proc(url: string) -> (string, bool) {
     defer net.close(socket)
 
     // build http request
+    ua := strings.concatenate({"odpkg/", VERSION})
+    defer delete(ua)
     req := strings.concatenate({
         "GET ", path, " HTTP/1.1\r\n",
         "Host: ", host, "\r\n",
         "Connection: close\r\n",
-        "User-Agent: odpkg/0.3\r\n",
+        "User-Agent: ", ua, "\r\n",
         "\r\n",
     })
     defer delete(req)
@@ -69,6 +174,27 @@ http_get :: proc(url: string) -> (string, bool) {
     }
 
     full := strings.to_string(response)
+    defer delete(full)
+
+    // parse status line
+    status_end := strings.index(full, "\r\n")
+    if status_end >= 0 {
+        status_line := full[:status_end]
+        first_sp := strings.index(status_line, " ")
+        if first_sp >= 0 {
+            rest := status_line[first_sp + 1:]
+            second_sp := strings.index(rest, " ")
+            code_str := rest
+            if second_sp >= 0 {
+                code_str = rest[:second_sp]
+            }
+            status, ok_status := strconv.parse_int(code_str)
+            if ok_status && (status < 200 || status >= 300) {
+                fmt.eprintln("HTTP error:", status)
+                return strings.clone(""), false
+            }
+        }
+    }
 
     // parse response - find body after \r\n\r\n
     body_start := strings.index(full, "\r\n\r\n")
@@ -126,6 +252,7 @@ parse_http_url :: proc(url: string) -> (host, path: string, port: int, ok: bool)
 
 decode_chunked :: proc(data: string) -> (string, bool) {
     result := strings.builder_make()
+    defer strings.builder_destroy(&result)
 
     remaining := data
     for len(remaining) > 0 {

@@ -102,7 +102,7 @@ fetch_registry :: proc() -> (string, bool) {
     data, ok := http_get("https://api.pkg-odin.org/packages")
     if !ok {
         fmt.eprintln("Failed to fetch registry from api.pkg-odin.org")
-        fmt.eprintln("  Hint: Check your network connection")
+        fmt.eprintln("  Hint: Check your network connection or ensure libcurl is installed")
         return strings.clone(""), false
     }
     return data, true

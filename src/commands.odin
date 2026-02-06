@@ -351,7 +351,7 @@ cmd_update :: proc() {
         installed[dep.name] = true
 
         // Check for transitive dependencies.
-        check_transitive_deps(path, cfg.vendor_dir, &resolved, &installed)
+        check_transitive_deps(path, cfg.vendor_dir, &resolved, &installed, 1)
 
         delete(path)
         append(&resolved, r)
@@ -403,14 +403,14 @@ install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dyna
         append(resolved, r)
 
         // Check for transitive dependencies.
-        check_transitive_deps(path, vendor_dir, resolved, installed)
+        check_transitive_deps(path, vendor_dir, resolved, installed, depth + 1)
 
         delete(path)
     }
 }
 
 // Check if installed package has its own odpkg.toml and install those deps.
-check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool) {
+check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, depth: int) {
     sub_config_path, join_err := filepath.join([]string{pkg_path, CONFIG_FILE})
     if join_err != nil do return
     defer delete(sub_config_path)
@@ -424,7 +424,7 @@ check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[
     if len(sub_cfg.deps) > 0 {
         base_name := filepath.base(pkg_path)
         fmt.println("  Found transitive deps in:", base_name)
-        install_deps_recursive(sub_cfg.deps[:], vendor_dir, resolved, installed, 1)
+        install_deps_recursive(sub_cfg.deps[:], vendor_dir, resolved, installed, depth)
     }
 }
 
@@ -434,24 +434,26 @@ install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep) {
         if path_err != nil do continue
 
         if os.exists(path) && os.is_dir(path) {
-            // Verify hash if present.
-            if item.hash != "" {
-                if !verify_hash(path, item.hash) {
-                    fmt.eprintln("Warning: Hash mismatch for", item.dep.name)
-                    fmt.eprintln("  Expected:", item.hash)
-                    fmt.eprintln("  Hint: Run 'odpkg update' to refresh")
-                }
-            }
             if !update_dep_to_commit(path, item.commit) {
                 fmt.eprintln("Failed to checkout:", item.dep.name)
             }
-            delete(path)
-            continue
+        } else {
+            if !ensure_dep_at_commit(item.dep.repo, path, item.commit) {
+                fmt.eprintln("Failed to install:", item.dep.name)
+                delete(path)
+                continue
+            }
         }
 
-        if !ensure_dep_at_commit(item.dep.repo, path, item.commit) {
-            fmt.eprintln("Failed to install:", item.dep.name)
+        // Verify hash after checkout/clone.
+        if item.hash != "" {
+            if !verify_hash(path, item.hash) {
+                fmt.eprintln("Warning: Hash mismatch for", item.dep.name)
+                fmt.eprintln("  Expected:", item.hash)
+                fmt.eprintln("  Hint: Run 'odpkg update' to refresh")
+            }
         }
+
         delete(path)
     }
 }

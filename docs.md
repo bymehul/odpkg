@@ -13,6 +13,7 @@ odpkg install
 ## Requirements
 
 - `git` in PATH
+- `libcurl` installed (and TLS deps like `mbedtls`) for registry list/search and `odpkg add --registry`
 
 ## Commands
 

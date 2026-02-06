@@ -14,6 +14,11 @@ odpkg add github.com/owner/repo@v1.0.0
 odpkg install
 ```
 
+## Requirements
+
+- `git` in PATH
+- `libcurl` installed (and TLS deps like `mbedtls`) for registry list/search and `odpkg add --registry`
+
 ## Install (Build From Source)
 
 ```bash
@@ -28,7 +33,7 @@ odin build src -out:odpkg
 Linux/macOS:
 
 ```bash
-VERSION=v0.3.0
+VERSION=v0.4.0
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -38,7 +43,7 @@ chmod +x odpkg
 Windows (PowerShell):
 
 ```powershell
-$version = "v0.3.0"
+$version = "v0.4.0"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help

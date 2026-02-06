@@ -5,10 +5,10 @@ import "core:strings"
 import "core:path/filepath"
 import "core:crypto/hash"
 import "core:slice"
-import "core:fmt"
 
 // Computes a sha256 hash of all files in a directory.
 // Files are sorted by name so the hash is reproducible.
+// Uses a manifest of per-file hashes to avoid huge memory usage.
 
 compute_dir_hash :: proc(dir_path: string) -> string {
     files := collect_files(dir_path)
@@ -24,7 +24,52 @@ compute_dir_hash :: proc(dir_path: string) -> string {
     // sort so we always get the same hash regardless of filesystem order
     slice.sort(files[:])
 
-    // build one big buffer with paths + contents, then hash it
+    // build a manifest: "path\nfilehash\n" for each file, then hash the manifest
+    sb := strings.builder_make()
+    defer strings.builder_destroy(&sb)
+
+    for file_path in files {
+        rel_path := make_relative(file_path, dir_path)
+        strings.write_string(&sb, rel_path)
+        strings.write_string(&sb, "\n")
+
+        data, ok := os.read_entire_file(file_path)
+        if ok {
+            digest: [32]u8
+            _ = hash.hash_bytes_to_buffer(.SHA256, data, digest[:])
+            file_hex := bytes_to_hex(digest[:])
+            strings.write_string(&sb, file_hex)
+            delete(file_hex)
+            delete(data)
+        } else {
+            strings.write_string(&sb, "error")
+        }
+
+        strings.write_string(&sb, "\n")
+        delete(rel_path)
+    }
+
+    manifest := strings.to_string(sb)
+    digest: [32]u8
+    _ = hash.hash_bytes_to_buffer(.SHA256, transmute([]u8)manifest, digest[:])
+    hex := bytes_to_hex(digest[:])
+    return hex
+}
+
+// Legacy hashing (v0.3.0) for compatibility with older lockfiles.
+compute_dir_hash_legacy :: proc(dir_path: string) -> string {
+    files := collect_files(dir_path)
+    if len(files) == 0 {
+        delete(files)
+        return strings.clone("")
+    }
+    defer {
+        for f in files do delete(f)
+        delete(files)
+    }
+
+    slice.sort(files[:])
+
     sb := strings.builder_make()
     defer strings.builder_destroy(&sb)
 
@@ -41,7 +86,8 @@ compute_dir_hash :: proc(dir_path: string) -> string {
     }
 
     content := strings.to_string(sb)
-    digest := hash.hash(.SHA256, transmute([]u8)content)
+    digest: [32]u8
+    _ = hash.hash_bytes_to_buffer(.SHA256, transmute([]u8)content, digest[:])
     hex := bytes_to_hex(digest[:])
     return hex
 }
@@ -59,7 +105,10 @@ collect_files_recursive :: proc(dir_path: string, files: ^[dynamic]string) {
 
     entries, read_err := os.read_dir(handle, -1)
     if read_err != nil do return
-    defer delete(entries)
+    defer {
+        for entry in entries do os.file_info_delete(entry)
+        delete(entries)
+    }
 
     for entry in entries {
         // skip git internals
@@ -112,5 +161,11 @@ verify_hash :: proc(dir_path: string, expected: string) -> bool {
         expected_clean = expected[7:]
     }
 
-    return computed == expected_clean
+    if computed == expected_clean {
+        return true
+    }
+
+    legacy := compute_dir_hash_legacy(dir_path)
+    defer delete(legacy)
+    return legacy == expected_clean
 }

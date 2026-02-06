@@ -20,7 +20,7 @@
             <div class="logo">
                 <span class="logo-icon">📦</span>
                 <span class="logo-text">odpkg</span>
-                <span class="version-badge">v0.3.0</span>
+                <span class="version-badge">v0.4.0</span>
             </div>
             <nav class="nav-links">
                 <a href="#" class="nav-link active">Docs</a>
@@ -114,7 +114,7 @@
                                 <span>Bash</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>VERSION=v0.3.0
+                            <pre><code>VERSION=v0.4.0
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -128,7 +128,7 @@ chmod +x odpkg
                                 <span>PowerShell</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>$version = "v0.3.0"
+                            <pre><code>$version = "v0.4.0"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help</code></pre>
@@ -142,12 +142,13 @@ Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$vers
                     <div class="callout">
                         <div class="callout-icon">ℹ️</div>
                         <div class="callout-content">
-                            <strong>Only git is required!</strong>
-                            <p>odpkg uses native HTTP via Odin's <code>core:net</code> - no curl or wget needed.</p>
+                            <strong>git is required; libcurl is required for registry features.</strong>
+                            <p>odpkg uses native HTTP for plain HTTP and <code>libcurl</code> (with TLS deps like mbedtls) for HTTPS registry fetches.</p>
                         </div>
                     </div>
                     <ul class="requirements-list">
                         <li><code>git</code> in PATH</li>
+                        <li><code>libcurl</code> installed (with TLS deps like <code>mbedtls</code>)</li>
                     </ul>
                 </section>
 
@@ -250,7 +251,7 @@ vendor_dir = "vendor"
                     <p>Print the current version of odpkg.</p>
                     <div class="code-block">
                         <pre><code><span class="prompt">$</span> odpkg version
-odpkg 0.3.0</code></pre>
+odpkg 0.4.0</code></pre>
                     </div>
                     <p>Also available as <code>odpkg -v</code> or <code>odpkg --version</code>.</p>
                 </section>

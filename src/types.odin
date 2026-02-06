@@ -1,6 +1,6 @@
 package main
 
-VERSION     :: "0.3.0"
+VERSION     :: "0.4.0"
 CONFIG_FILE :: "odpkg.toml"
 LOCK_FILE   :: "odpkg.lock"
 
@@ -22,4 +22,3 @@ Resolved_Dep :: struct {
     commit: string,
     hash:   string,
 }
-

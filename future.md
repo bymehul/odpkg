@@ -8,8 +8,8 @@
 - Lockfile is required for reproducible installs; do not edit `odpkg.lock` manually.
 - No private repo auth flows yet.
 
-## Completed in v0.3.0
-- Native HTTP using `core:net` (`net.resolve_ip4()` for DNS + TCP sockets).
+## Completed in v0.4.0
+- HTTP via `core:net` with libcurl for HTTPS registry fetches.
 - Registry search/filter (`odpkg search <query>`).
 - Add from registry (`odpkg add --registry <slug>`).
 - Checksum/integrity verification (SHA256 hashes in lockfile).

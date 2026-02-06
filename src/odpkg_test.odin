@@ -196,6 +196,77 @@ verify_hash_empty_expected :: proc(t: ^testing.T) {
 }
 
 @(test)
+compute_dir_hash_deterministic :: proc(t: ^testing.T) {
+    tmp1, err1 := os2.make_directory_temp("", "odpkg_hash_*", context.allocator)
+    if err1 != nil {
+        testing.fail_now(t, "failed to create temp dir")
+    }
+    defer {
+        _ = os2.remove_all(tmp1)
+        delete(tmp1)
+    }
+
+    file_a1, err_a1 := filepath.join([]string{tmp1, "a.txt"})
+    if err_a1 != nil {
+        testing.fail_now(t, "failed to build path")
+    }
+    file_b1, err_b1 := filepath.join([]string{tmp1, "b.txt"})
+    if err_b1 != nil {
+        delete(file_a1)
+        testing.fail_now(t, "failed to build path")
+    }
+
+    beta := "beta"
+    ok := os.write_entire_file(file_b1, transmute([]u8)beta)
+    testing.expect(t, ok)
+    alpha := "alpha"
+    ok = os.write_entire_file(file_a1, transmute([]u8)alpha)
+    testing.expect(t, ok)
+
+    hash1 := compute_dir_hash(tmp1)
+    testing.expect(t, hash1 != "")
+
+    delete(file_a1)
+    delete(file_b1)
+
+    tmp2, err2 := os2.make_directory_temp("", "odpkg_hash_*", context.allocator)
+    if err2 != nil {
+        delete(hash1)
+        testing.fail_now(t, "failed to create temp dir")
+    }
+    defer {
+        _ = os2.remove_all(tmp2)
+        delete(tmp2)
+    }
+
+    file_a2, err_a2 := filepath.join([]string{tmp2, "a.txt"})
+    if err_a2 != nil {
+        delete(hash1)
+        testing.fail_now(t, "failed to build path")
+    }
+    file_b2, err_b2 := filepath.join([]string{tmp2, "b.txt"})
+    if err_b2 != nil {
+        delete(file_a2)
+        delete(hash1)
+        testing.fail_now(t, "failed to build path")
+    }
+
+    ok = os.write_entire_file(file_a2, transmute([]u8)alpha)
+    testing.expect(t, ok)
+    ok = os.write_entire_file(file_b2, transmute([]u8)beta)
+    testing.expect(t, ok)
+
+    hash2 := compute_dir_hash(tmp2)
+    testing.expect(t, hash2 != "")
+    testing.expect(t, hash1 == hash2)
+
+    delete(file_a2)
+    delete(file_b2)
+    delete(hash1)
+    delete(hash2)
+}
+
+@(test)
 lock_roundtrip_with_hash :: proc(t: ^testing.T) {
     tmp_dir, err := os2.make_directory_temp("", "odpkg_test_*", context.allocator)
     if err != nil {
@@ -259,4 +330,3 @@ is_commit_hash_invalid :: proc(t: ^testing.T) {
     testing.expect(t, !is_commit_hash("abc"))     // too short
     testing.expect(t, !is_commit_hash("xyz123"))  // invalid chars
 }
-
