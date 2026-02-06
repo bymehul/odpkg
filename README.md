@@ -19,6 +19,13 @@ odpkg install
 - `git` in PATH
 - `libcurl` installed (and TLS deps like `mbedtls`) for registry list/search and `odpkg add --registry`
 
+## Security Notes
+
+- Dependency names are validated and must be simple (no path separators).
+- Installs are restricted to the configured `vendor_dir`.
+- Lockfile commits are validated and verified after checkout.
+- HTTPS registry fetch uses libcurl with certificate verification enabled.
+
 ## Install (Build From Source)
 
 ```bash
@@ -33,7 +40,7 @@ odin build src -out:odpkg
 Linux/macOS:
 
 ```bash
-VERSION=v0.4.0
+VERSION=v0.5.1
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -43,7 +50,7 @@ chmod +x odpkg
 Windows (PowerShell):
 
 ```powershell
-$version = "v0.4.0"
+$version = "v0.5.1"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help

@@ -20,7 +20,7 @@
             <div class="logo">
                 <span class="logo-icon">📦</span>
                 <span class="logo-text">odpkg</span>
-                <span class="version-badge">v0.4.0</span>
+                <span class="version-badge">v0.5.1</span>
             </div>
             <nav class="nav-links">
                 <a href="#" class="nav-link active">Docs</a>
@@ -68,6 +68,7 @@
                     <a href="#registry" class="nav-item">Registry</a>
                     <a href="#transitive" class="nav-item">Transitive Deps</a>
                     <a href="#integrity" class="nav-item">Integrity</a>
+                    <a href="#security" class="nav-item">Security</a>
                 </div>
             </nav>
         </aside>
@@ -114,7 +115,7 @@
                                 <span>Bash</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>VERSION=v0.4.0
+                            <pre><code>VERSION=v0.5.1
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -128,7 +129,7 @@ chmod +x odpkg
                                 <span>PowerShell</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>$version = "v0.4.0"
+                            <pre><code>$version = "v0.5.1"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help</code></pre>
@@ -251,7 +252,7 @@ vendor_dir = "vendor"
                     <p>Print the current version of odpkg.</p>
                     <div class="code-block">
                         <pre><code><span class="prompt">$</span> odpkg version
-odpkg 0.4.0</code></pre>
+odpkg 0.5.1</code></pre>
                     </div>
                     <p>Also available as <code>odpkg -v</code> or <code>odpkg --version</code>.</p>
                 </section>
@@ -383,6 +384,16 @@ hash = "sha256:e3b0c44298fc1c149..."</code></pre>
                     </div>
                 </section>
 
+                <section id="security" class="section">
+                    <h2>Security Notes</h2>
+                    <ul class="requirements-list">
+                        <li>Dependency names are validated (no path separators).</li>
+                        <li>Installs are restricted to the configured <code>vendor_dir</code>.</li>
+                        <li>Lockfile commits are validated and verified after checkout.</li>
+                        <li>HTTPS registry fetch uses libcurl with certificate verification enabled.</li>
+                    </ul>
+                </section>
+
                 <footer class="content-footer">
                     <p>odpkg is licensed under the zlib License. Made with ❤️ for the Odin community.</p>
                 </footer>
@@ -411,6 +422,7 @@ hash = "sha256:e3b0c44298fc1c149..."</code></pre>
                 <a href="#registry" class="toc-item">Registry</a>
                 <a href="#transitive" class="toc-item">Transitive Deps</a>
                 <a href="#integrity" class="toc-item">Integrity</a>
+                <a href="#security" class="toc-item">Security</a>
             </nav>
         </aside>
     </div>

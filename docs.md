@@ -15,6 +15,13 @@ odpkg install
 - `git` in PATH
 - `libcurl` installed (and TLS deps like `mbedtls`) for registry list/search and `odpkg add --registry`
 
+## Security Notes
+
+- Dependency names are validated and must be simple (no path separators).
+- Installs are restricted to the configured `vendor_dir`.
+- Lockfile commits are validated and verified after checkout.
+- HTTPS registry fetch uses libcurl with certificate verification enabled.
+
 ## Commands
 
 ```bash
