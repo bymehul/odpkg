@@ -290,7 +290,7 @@ lock_roundtrip_with_hash :: proc(t: ^testing.T) {
                 repo = strings.clone("raysan5/raylib"),
                 ref  = strings.clone("v5.0"),
             },
-            commit = strings.clone("abc123"),
+            commit = strings.clone("abc1234"),
             hash   = strings.clone("sha256:deadbeef"),
         },
     }
@@ -305,7 +305,7 @@ lock_roundtrip_with_hash :: proc(t: ^testing.T) {
     testing.expect(t, len(read_deps) == 1)
     if len(read_deps) == 1 {
         testing.expect(t, read_deps[0].dep.name == "raylib")
-        testing.expect(t, read_deps[0].commit == "abc123")
+        testing.expect(t, read_deps[0].commit == "abc1234")
         testing.expect(t, read_deps[0].hash == "sha256:deadbeef")
     }
 

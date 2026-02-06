@@ -130,6 +130,12 @@ cmd_add :: proc(args: []string) {
         alias = repo_name_from(repo)
     }
 
+    if !is_safe_dep_name(alias) {
+        fmt.eprintln("Invalid dependency name/alias:", alias)
+        fmt.eprintln("  Hint: Use a simple name without spaces or path separators")
+        return
+    }
+
     cfg, ok_cfg := read_config(CONFIG_FILE)
     if !ok_cfg {
         fmt.eprintln("Missing odpkg.toml. Run 'odpkg init' first.")
@@ -276,14 +282,26 @@ cmd_install :: proc() {
         cfg.vendor_dir = strings.clone("vendor")
     }
 
+    if !is_safe_vendor_dir(cfg.vendor_dir) {
+        fmt.eprintln("Invalid vendor_dir in odpkg.toml:", cfg.vendor_dir)
+        fmt.eprintln("  Hint: Use a relative path like \"vendor\"")
+        return
+    }
+
     _ = os2.make_directory_all(cfg.vendor_dir)
 
     // Prefer lockfile for reproducible installs when available.
-    lock_deps, lock_ok := read_lock(LOCK_FILE)
-    if lock_ok && len(lock_deps) > 0 {
-        defer free_resolved_list(&lock_deps)
-        install_from_lock(cfg.vendor_dir, lock_deps[:])
-        return
+    if os.exists(LOCK_FILE) {
+        lock_deps, lock_ok := read_lock(LOCK_FILE)
+        if !lock_ok {
+            fmt.eprintln("Invalid odpkg.lock. Refusing to install.")
+            return
+        }
+        if len(lock_deps) > 0 {
+            defer free_resolved_list(&lock_deps)
+            install_from_lock(cfg.vendor_dir, lock_deps[:])
+            return
+        }
     }
 
     // Fresh install re-resolves refs from odpkg.toml.
@@ -312,6 +330,12 @@ cmd_update :: proc() {
         cfg.vendor_dir = strings.clone("vendor")
     }
 
+    if !is_safe_vendor_dir(cfg.vendor_dir) {
+        fmt.eprintln("Invalid vendor_dir in odpkg.toml:", cfg.vendor_dir)
+        fmt.eprintln("  Hint: Use a relative path like \"vendor\"")
+        return
+    }
+
     _ = os2.make_directory_all(cfg.vendor_dir)
 
     resolved := make([dynamic]Resolved_Dep)
@@ -321,8 +345,12 @@ cmd_update :: proc() {
     defer delete(installed)
 
     for dep in cfg.deps {
-        path, path_err := filepath.join([]string{cfg.vendor_dir, dep.name})
-        if path_err != nil do continue
+        if !is_safe_dep_name(dep.name) {
+            fmt.eprintln("Invalid dependency name:", dep.name)
+            continue
+        }
+        path, ok_path := safe_vendor_path(cfg.vendor_dir, dep.name)
+        if !ok_path do continue
 
         if !os.exists(path) || !os.is_dir(path) {
             fmt.println("Missing:", dep.name, "(installing)")
@@ -372,8 +400,12 @@ install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dyna
     for dep in deps {
         if dep.name in installed^ do continue
 
-        path, path_err := filepath.join([]string{vendor_dir, dep.name})
-        if path_err != nil do continue
+        if !is_safe_dep_name(dep.name) {
+            fmt.eprintln("Invalid dependency name:", dep.name)
+            continue
+        }
+        path, ok_path := safe_vendor_path(vendor_dir, dep.name)
+        if !ok_path do continue
 
         if os.exists(path) && os.is_dir(path) {
             fmt.println("Exists:", dep.name)
@@ -430,8 +462,12 @@ check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[
 
 install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep) {
     for item in deps {
-        path, path_err := filepath.join([]string{vendor_dir, item.dep.name})
-        if path_err != nil do continue
+        if !is_safe_dep_name(item.dep.name) {
+            fmt.eprintln("Invalid dependency name in lockfile:", item.dep.name)
+            continue
+        }
+        path, ok_path := safe_vendor_path(vendor_dir, item.dep.name)
+        if !ok_path do continue
 
         if os.exists(path) && os.is_dir(path) {
             if !update_dep_to_commit(path, item.commit) {
@@ -444,6 +480,17 @@ install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep) {
                 continue
             }
         }
+
+        actual := git_rev_parse(path)
+        if actual == "" || actual != item.commit {
+            fmt.eprintln("Commit mismatch for", item.dep.name)
+            fmt.eprintln("  Expected:", item.commit)
+            fmt.eprintln("  Actual:  ", actual)
+            delete(actual)
+            delete(path)
+            continue
+        }
+        delete(actual)
 
         // Verify hash after checkout/clone.
         if item.hash != "" {

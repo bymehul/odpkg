@@ -179,6 +179,10 @@ parse_repo_spec :: proc(spec: string) -> (repo, ref: string, ok: bool) {
         s = s[:len(s)-4]
     }
 
+    if !is_safe_repo_value(s) {
+        return "", "", false
+    }
+
     if !strings.contains(s, "/") {
         return "", "", false
     }

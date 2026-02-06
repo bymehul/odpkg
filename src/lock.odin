@@ -21,6 +21,7 @@ read_lock :: proc(path: string) -> ([dynamic]Resolved_Dep, bool) {
     deps := make([dynamic]Resolved_Dep)
     current := Resolved_Dep{}
     has_block := false
+    invalid := false
 
     for line in lines {
         trimmed := strings.trim_space(line)
@@ -28,7 +29,7 @@ read_lock :: proc(path: string) -> ([dynamic]Resolved_Dep, bool) {
         if strings.has_prefix(trimmed, "#") do continue
 
         if strings.has_prefix(trimmed, "[[") && strings.has_suffix(trimmed, "]]" ) {
-            flush_current(&deps, &current, &has_block)
+            flush_current(&deps, &current, &has_block, &invalid)
             section := trimmed[2:len(trimmed)-2]
             if section == "dependency" {
                 has_block = true
@@ -68,7 +69,11 @@ read_lock :: proc(path: string) -> ([dynamic]Resolved_Dep, bool) {
         }
     }
 
-    flush_current(&deps, &current, &has_block)
+    flush_current(&deps, &current, &has_block, &invalid)
+    if invalid {
+        free_resolved_list(&deps)
+        return nil, false
+    }
     return deps, true
 }
 
@@ -108,11 +113,17 @@ write_lock :: proc(path: string, deps: []Resolved_Dep) -> bool {
     return ok
 }
 
-flush_current :: proc(deps: ^[dynamic]Resolved_Dep, current: ^Resolved_Dep, has_block: ^bool) {
+flush_current :: proc(deps: ^[dynamic]Resolved_Dep, current: ^Resolved_Dep, has_block: ^bool, invalid: ^bool) {
     if !has_block^ do return
     if current.dep.name == "" || current.dep.repo == "" || current.commit == "" {
         clear_resolved(current)
         has_block^ = false
+        return
+    }
+    if !is_safe_dep_name(current.dep.name) || !is_commit_hash(current.commit) {
+        clear_resolved(current)
+        has_block^ = false
+        invalid^ = true
         return
     }
     append(deps, current^)

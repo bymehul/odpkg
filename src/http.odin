@@ -91,6 +91,8 @@ http_get_curl :: proc(url: string) -> (string, bool) {
     _ = curl.easy_setopt(handle, curl.option.URL, url_cstr)
     _ = curl.easy_setopt(handle, curl.option.USERAGENT, ua_cstr)
     _ = curl.easy_setopt(handle, curl.option.FOLLOWLOCATION, c.long(1))
+    _ = curl.easy_setopt(handle, curl.option.SSL_VERIFYPEER, c.long(1))
+    _ = curl.easy_setopt(handle, curl.option.SSL_VERIFYHOST, c.long(2))
     _ = curl.easy_setopt(handle, curl.option.WRITEFUNCTION, http_write_cb)
     _ = curl.easy_setopt(handle, curl.option.WRITEDATA, &buf)
 

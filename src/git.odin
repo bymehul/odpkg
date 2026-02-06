@@ -80,7 +80,13 @@ ensure_dep_at_commit :: proc(repo: string, dest: string, commit: string) -> bool
     url := format_clone_url(repo)
     ok := run_cmd([]string{"git", "clone", url, dest}, "")
     if ok {
-        _ = run_cmd([]string{"git", "-C", dest, "checkout", commit}, "")
+        checkout_ok := run_cmd([]string{"git", "-C", dest, "checkout", commit}, "")
+        if !checkout_ok {
+            fmt.eprintln("  Failed to checkout commit:", commit)
+            fmt.eprintln("  Hint: Verify the commit hash exists in the repository")
+            delete(url)
+            return false
+        }
         delete(url)
         return true
     }
