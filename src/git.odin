@@ -1,8 +1,8 @@
 package main
 
 import "core:fmt"
+import "core:os"
 import "core:strings"
-import os2 "core:os/os2"
 
 clone_dep :: proc(dep: Dep, dest: string) -> bool {
     url := format_clone_url(dep.repo)
@@ -42,7 +42,7 @@ clone_dep :: proc(dep: Dep, dest: string) -> bool {
     }
 
     // Fallback: full clone then checkout.
-    _ = os2.remove_all(dest)
+    _ = os.remove_all(dest)
     ok = run_cmd([]string{"git", "clone", url, dest}, "")
     if ok {
         checkout_ok := run_cmd([]string{"git", "-C", dest, "checkout", dep.ref}, "")
@@ -100,11 +100,11 @@ update_dep_to_commit :: proc(dest: string, commit: string) -> bool {
 }
 
 run_cmd :: proc(args: []string, cwd: string) -> bool {
-    desc := os2.Process_Desc{
+    desc := os.Process_Desc{
         command = args,
         working_dir = cwd,
     }
-    state, stdout, stderr, err := os2.process_exec(desc, context.allocator)
+    state, stdout, stderr, err := os.process_exec(desc, context.allocator)
     if err != nil {
         fmt.eprintln("Process error:", err)
         if len(stdout) > 0 {
@@ -130,10 +130,10 @@ run_cmd :: proc(args: []string, cwd: string) -> bool {
 }
 
 git_rev_parse :: proc(path: string) -> string {
-    desc := os2.Process_Desc{
+    desc := os.Process_Desc{
         command = []string{"git", "-C", path, "rev-parse", "HEAD"},
     }
-    state, stdout, stderr, err := os2.process_exec(desc, context.allocator)
+    state, stdout, stderr, err := os.process_exec(desc, context.allocator)
     if err != nil || !state.exited || state.exit_code != 0 {
         if len(stderr) > 0 {
             fmt.eprintln(string(stderr))

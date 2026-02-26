@@ -20,7 +20,7 @@
             <div class="logo">
                 <span class="logo-icon">📦</span>
                 <span class="logo-text">odpkg</span>
-                <span class="version-badge">v0.5.1</span>
+                <span class="version-badge">v0.5.2</span>
             </div>
             <nav class="nav-links">
                 <a href="#" class="nav-link active">Docs</a>
@@ -84,6 +84,8 @@
                     </div>
                     <p class="intro">odpkg is an <strong>unofficial</strong> Odin package manager focused on simplicity
                         and vendoring. Get up and running in under a minute.</p>
+                    <p><strong>Current version:</strong> odpkg <code>v0.5.2</code> |
+                        <strong>Odin used for build/tests:</strong> <code>dev-2026-01:f7901cffc</code></p>
 
                     <div class="code-block">
                         <div class="code-header">
@@ -115,7 +117,7 @@
                                 <span>Bash</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>VERSION=v0.5.1
+                            <pre><code>VERSION=v0.5.2
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -129,7 +131,7 @@ chmod +x odpkg
                                 <span>PowerShell</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>$version = "v0.5.1"
+                            <pre><code>$version = "v0.5.2"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help</code></pre>
@@ -165,7 +167,7 @@ Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$vers
                         <div class="code-header"><span>odpkg.toml</span></div>
                         <pre><code>[odpkg]
 name = "my-project"
-version = "0.1.0"
+version = "0.2.0"
 vendor_dir = "vendor"
 
 [dependencies]</code></pre>
@@ -252,7 +254,7 @@ vendor_dir = "vendor"
                     <p>Print the current version of odpkg.</p>
                     <div class="code-block">
                         <pre><code><span class="prompt">$</span> odpkg version
-odpkg 0.5.1</code></pre>
+odpkg 0.5.2</code></pre>
                     </div>
                     <p>Also available as <code>odpkg -v</code> or <code>odpkg --version</code>.</p>
                 </section>

@@ -2,6 +2,10 @@
 
 An **unofficial** open-source package manager for Odin. It is vendor-first and keeps installs local to `vendor/`.
 
+Current versions:
+- odpkg: `v0.5.2`
+- Odin used for build/tests: `dev-2026-01:f7901cffc`
+
 Principles:
 - GitHub-only (v0.1)
 - Vendoring-first
@@ -40,7 +44,7 @@ odin build src -out:odpkg
 Linux/macOS:
 
 ```bash
-VERSION=v0.5.1
+VERSION=v0.5.2
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -50,7 +54,7 @@ chmod +x odpkg
 Windows (PowerShell):
 
 ```powershell
-$version = "v0.5.1"
+$version = "v0.5.2"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help

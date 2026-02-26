@@ -33,8 +33,8 @@ compute_dir_hash :: proc(dir_path: string) -> string {
         strings.write_string(&sb, rel_path)
         strings.write_string(&sb, "\n")
 
-        data, ok := os.read_entire_file(file_path)
-        if ok {
+        data, err := os.read_entire_file(file_path, context.allocator)
+        if err == nil {
             digest: [32]u8
             _ = hash.hash_bytes_to_buffer(.SHA256, data, digest[:])
             file_hex := bytes_to_hex(digest[:])
@@ -78,8 +78,8 @@ compute_dir_hash_legacy :: proc(dir_path: string) -> string {
         strings.write_string(&sb, rel_path)
         delete(rel_path)
 
-        data, ok := os.read_entire_file(file_path)
-        if ok {
+        data, err := os.read_entire_file(file_path, context.allocator)
+        if err == nil {
             strings.write_bytes(&sb, data)
             delete(data)
         }
@@ -103,10 +103,10 @@ collect_files_recursive :: proc(dir_path: string, files: ^[dynamic]string) {
     if err != nil do return
     defer os.close(handle)
 
-    entries, read_err := os.read_dir(handle, -1)
+    entries, read_err := os.read_dir(handle, -1, context.allocator)
     if read_err != nil do return
     defer {
-        for entry in entries do os.file_info_delete(entry)
+        for entry in entries do os.file_info_delete(entry, context.allocator)
         delete(entries)
     }
 
@@ -114,10 +114,10 @@ collect_files_recursive :: proc(dir_path: string, files: ^[dynamic]string) {
         // skip git internals
         if entry.name == ".git" do continue
 
-        full_path, join_err := filepath.join([]string{dir_path, entry.name})
+        full_path, join_err := filepath.join([]string{dir_path, entry.name}, context.allocator)
         if join_err != nil do continue
 
-        if entry.is_dir {
+        if entry.type == .Directory {
             collect_files_recursive(full_path, files)
             delete(full_path)
         } else {

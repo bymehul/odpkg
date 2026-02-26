@@ -4,7 +4,6 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:path/filepath"
-import os2 "core:os/os2"
 import json "core:encoding/json"
 
 RegistryPackage :: struct {
@@ -65,20 +64,20 @@ list_registry_packages :: proc(refresh: bool) {
 }
 
 registry_cache_path :: proc() -> string {
-    cache_dir, err := os2.user_cache_dir(context.allocator)
+    cache_dir, err := os.user_cache_dir(context.allocator)
     if err != nil || cache_dir == "" {
         return strings.clone("")
     }
 
-    base, err1 := filepath.join([]string{cache_dir, "odpkg"})
+    base, err1 := filepath.join([]string{cache_dir, "odpkg"}, context.allocator)
     if err1 != nil {
         delete(cache_dir)
         return strings.clone("")
     }
-    _ = os2.make_directory_all(base)
+    _ = os.make_directory_all(base)
     delete(cache_dir)
 
-    path, err2 := filepath.join([]string{base, "packages.json"})
+    path, err2 := filepath.join([]string{base, "packages.json"}, context.allocator)
     delete(base)
     if err2 != nil {
         return strings.clone("")
@@ -87,15 +86,15 @@ registry_cache_path :: proc() -> string {
 }
 
 read_cached_registry :: proc(path: string) -> (string, bool) {
-    data, ok := os.read_entire_file(path)
-    if !ok do return "", false
+    data, err := os.read_entire_file(path, context.allocator)
+    if err != nil do return "", false
     text := strings.clone(string(data))
     delete(data)
     return text, true
 }
 
 write_registry_cache :: proc(path: string, payload: string) -> bool {
-    return os.write_entire_file(path, transmute([]u8)payload)
+    return os.write_entire_file(path, payload) == nil
 }
 
 fetch_registry :: proc() -> (string, bool) {

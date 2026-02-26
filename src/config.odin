@@ -4,8 +4,8 @@ import "core:os"
 import "core:strings"
 
 read_config :: proc(path: string) -> (Config, bool) {
-    data, ok := os.read_entire_file(path)
-    if !ok do return Config{}, false
+    data, read_err := os.read_entire_file(path, context.allocator)
+    if read_err != nil do return Config{}, false
     defer delete(data)
 
     cfg := Config{
@@ -104,8 +104,7 @@ write_config :: proc(path: string, cfg: Config) -> bool {
     }
 
     content := strings.to_string(sb)
-    ok := os.write_entire_file(path, transmute([]u8)content)
-    return ok
+    return os.write_entire_file(path, content) == nil
 }
 
 parse_dep_value :: proc(raw: string) -> (repo, ref: string, ok: bool) {

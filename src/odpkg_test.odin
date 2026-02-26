@@ -4,7 +4,6 @@ import "core:testing"
 import "core:strings"
 import "core:path/filepath"
 import "core:os"
-import os2 "core:os/os2"
 
 @(test)
 parse_repo_spec_basic :: proc(t: ^testing.T) {
@@ -56,12 +55,12 @@ format_dep_spec_basic :: proc(t: ^testing.T) {
 
 @(test)
 config_roundtrip :: proc(t: ^testing.T) {
-    tmp_dir, err := os2.make_directory_temp("", "odpkg_test_*", context.allocator)
+    tmp_dir, err := os.make_directory_temp("", "odpkg_test_*", context.allocator)
     if err != nil {
         testing.fail_now(t, "failed to create temp dir")
     }
     defer {
-        _ = os2.remove_all(tmp_dir)
+        _ = os.remove_all(tmp_dir)
         delete(tmp_dir)
     }
 
@@ -78,7 +77,7 @@ config_roundtrip :: proc(t: ^testing.T) {
     append(&cfg.deps, dep)
     defer config_free(&cfg)
 
-    cfg_path, path_err := filepath.join([]string{tmp_dir, CONFIG_FILE})
+    cfg_path, path_err := filepath.join([]string{tmp_dir, CONFIG_FILE}, context.allocator)
     if path_err != nil {
         testing.fail_now(t, "failed to build config path")
     }
@@ -106,24 +105,24 @@ config_roundtrip :: proc(t: ^testing.T) {
 
 @(test)
 read_config_inline_dep :: proc(t: ^testing.T) {
-    tmp_dir, err := os2.make_directory_temp("", "odpkg_test_*", context.allocator)
+    tmp_dir, err := os.make_directory_temp("", "odpkg_test_*", context.allocator)
     if err != nil {
         testing.fail_now(t, "failed to create temp dir")
     }
     defer {
-        _ = os2.remove_all(tmp_dir)
+        _ = os.remove_all(tmp_dir)
         delete(tmp_dir)
     }
 
-    cfg_path, path_err := filepath.join([]string{tmp_dir, CONFIG_FILE})
+    cfg_path, path_err := filepath.join([]string{tmp_dir, CONFIG_FILE}, context.allocator)
     if path_err != nil {
         testing.fail_now(t, "failed to build config path")
     }
     defer delete(cfg_path)
 
     content := "[odpkg]\nname = \"demo\"\n\n[dependencies]\nraylib = { repo = \"raysan5/raylib\", ref = \"v5.0\" }\n"
-    ok := os.write_entire_file(cfg_path, transmute([]u8)content)
-    testing.expect(t, ok)
+    werr := os.write_entire_file(cfg_path, content)
+    testing.expect(t, werr == nil)
 
     cfg, ok2 := read_config(cfg_path)
     testing.expect(t, ok2)
@@ -197,31 +196,31 @@ verify_hash_empty_expected :: proc(t: ^testing.T) {
 
 @(test)
 compute_dir_hash_deterministic :: proc(t: ^testing.T) {
-    tmp1, err1 := os2.make_directory_temp("", "odpkg_hash_*", context.allocator)
+    tmp1, err1 := os.make_directory_temp("", "odpkg_hash_*", context.allocator)
     if err1 != nil {
         testing.fail_now(t, "failed to create temp dir")
     }
     defer {
-        _ = os2.remove_all(tmp1)
+        _ = os.remove_all(tmp1)
         delete(tmp1)
     }
 
-    file_a1, err_a1 := filepath.join([]string{tmp1, "a.txt"})
+    file_a1, err_a1 := filepath.join([]string{tmp1, "a.txt"}, context.allocator)
     if err_a1 != nil {
         testing.fail_now(t, "failed to build path")
     }
-    file_b1, err_b1 := filepath.join([]string{tmp1, "b.txt"})
+    file_b1, err_b1 := filepath.join([]string{tmp1, "b.txt"}, context.allocator)
     if err_b1 != nil {
         delete(file_a1)
         testing.fail_now(t, "failed to build path")
     }
 
     beta := "beta"
-    ok := os.write_entire_file(file_b1, transmute([]u8)beta)
-    testing.expect(t, ok)
+    werr := os.write_entire_file(file_b1, beta)
+    testing.expect(t, werr == nil)
     alpha := "alpha"
-    ok = os.write_entire_file(file_a1, transmute([]u8)alpha)
-    testing.expect(t, ok)
+    werr = os.write_entire_file(file_a1, alpha)
+    testing.expect(t, werr == nil)
 
     hash1 := compute_dir_hash(tmp1)
     testing.expect(t, hash1 != "")
@@ -229,32 +228,32 @@ compute_dir_hash_deterministic :: proc(t: ^testing.T) {
     delete(file_a1)
     delete(file_b1)
 
-    tmp2, err2 := os2.make_directory_temp("", "odpkg_hash_*", context.allocator)
+    tmp2, err2 := os.make_directory_temp("", "odpkg_hash_*", context.allocator)
     if err2 != nil {
         delete(hash1)
         testing.fail_now(t, "failed to create temp dir")
     }
     defer {
-        _ = os2.remove_all(tmp2)
+        _ = os.remove_all(tmp2)
         delete(tmp2)
     }
 
-    file_a2, err_a2 := filepath.join([]string{tmp2, "a.txt"})
+    file_a2, err_a2 := filepath.join([]string{tmp2, "a.txt"}, context.allocator)
     if err_a2 != nil {
         delete(hash1)
         testing.fail_now(t, "failed to build path")
     }
-    file_b2, err_b2 := filepath.join([]string{tmp2, "b.txt"})
+    file_b2, err_b2 := filepath.join([]string{tmp2, "b.txt"}, context.allocator)
     if err_b2 != nil {
         delete(file_a2)
         delete(hash1)
         testing.fail_now(t, "failed to build path")
     }
 
-    ok = os.write_entire_file(file_a2, transmute([]u8)alpha)
-    testing.expect(t, ok)
-    ok = os.write_entire_file(file_b2, transmute([]u8)beta)
-    testing.expect(t, ok)
+    werr = os.write_entire_file(file_a2, alpha)
+    testing.expect(t, werr == nil)
+    werr = os.write_entire_file(file_b2, beta)
+    testing.expect(t, werr == nil)
 
     hash2 := compute_dir_hash(tmp2)
     testing.expect(t, hash2 != "")
@@ -268,16 +267,16 @@ compute_dir_hash_deterministic :: proc(t: ^testing.T) {
 
 @(test)
 lock_roundtrip_with_hash :: proc(t: ^testing.T) {
-    tmp_dir, err := os2.make_directory_temp("", "odpkg_test_*", context.allocator)
+    tmp_dir, err := os.make_directory_temp("", "odpkg_test_*", context.allocator)
     if err != nil {
         testing.fail_now(t, "failed to create temp dir")
     }
     defer {
-        _ = os2.remove_all(tmp_dir)
+        _ = os.remove_all(tmp_dir)
         delete(tmp_dir)
     }
 
-    lock_path, path_err := filepath.join([]string{tmp_dir, LOCK_FILE})
+    lock_path, path_err := filepath.join([]string{tmp_dir, LOCK_FILE}, context.allocator)
     if path_err != nil {
         testing.fail_now(t, "failed to build lock path")
     }

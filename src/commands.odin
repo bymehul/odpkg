@@ -4,7 +4,6 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:path/filepath"
-import os2 "core:os/os2"
 
 cmd_init :: proc(args: []string) {
     if os.exists(CONFIG_FILE) {
@@ -16,7 +15,7 @@ cmd_init :: proc(args: []string) {
     if len(args) > 0 {
         name = strings.clone(args[0])
     } else {
-        cwd, err := os2.get_working_directory(context.allocator)
+        cwd, err := os.get_working_directory(context.allocator)
         if err == nil {
             base := filepath.base(cwd)
             name = strings.clone(base)
@@ -38,7 +37,7 @@ cmd_init :: proc(args: []string) {
         return
     }
 
-    _ = os2.make_directory_all(cfg.vendor_dir)
+    _ = os.make_directory_all(cfg.vendor_dir)
     fmt.println("Initialized", CONFIG_FILE)
 }
 
@@ -288,7 +287,7 @@ cmd_install :: proc() {
         return
     }
 
-    _ = os2.make_directory_all(cfg.vendor_dir)
+    _ = os.make_directory_all(cfg.vendor_dir)
 
     // Prefer lockfile for reproducible installs when available.
     if os.exists(LOCK_FILE) {
@@ -336,7 +335,7 @@ cmd_update :: proc() {
         return
     }
 
-    _ = os2.make_directory_all(cfg.vendor_dir)
+    _ = os.make_directory_all(cfg.vendor_dir)
 
     resolved := make([dynamic]Resolved_Dep)
     defer free_resolved_list(&resolved)
@@ -443,7 +442,7 @@ install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dyna
 
 // Check if installed package has its own odpkg.toml and install those deps.
 check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, depth: int) {
-    sub_config_path, join_err := filepath.join([]string{pkg_path, CONFIG_FILE})
+    sub_config_path, join_err := filepath.join([]string{pkg_path, CONFIG_FILE}, context.allocator)
     if join_err != nil do return
     defer delete(sub_config_path)
 

@@ -8,8 +8,8 @@ read_lock :: proc(path: string) -> ([dynamic]Resolved_Dep, bool) {
         return nil, false
     }
 
-    data, ok := os.read_entire_file(path)
-    if !ok do return nil, false
+    data, read_err := os.read_entire_file(path, context.allocator)
+    if read_err != nil do return nil, false
     defer delete(data)
 
     lines, err := strings.split_lines(string(data))
@@ -109,8 +109,7 @@ write_lock :: proc(path: string, deps: []Resolved_Dep) -> bool {
     }
 
     content := strings.to_string(sb)
-    ok := os.write_entire_file(path, transmute([]u8)content)
-    return ok
+    return os.write_entire_file(path, content) == nil
 }
 
 flush_current :: proc(deps: ^[dynamic]Resolved_Dep, current: ^Resolved_Dep, has_block: ^bool, invalid: ^bool) {

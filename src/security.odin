@@ -17,7 +17,7 @@ is_safe_vendor_dir :: proc(dir: string) -> bool {
     if filepath.is_abs(dir) do return false
     if strings.contains_any(dir, "\t\r\n") do return false
 
-    clean, err := filepath.clean(dir)
+    clean, err := filepath.clean(dir, context.allocator)
     if err != nil do return false
     defer delete(clean)
 
@@ -31,12 +31,12 @@ safe_vendor_path :: proc(vendor_dir, name: string) -> (string, bool) {
         return "", false
     }
 
-    joined, err := filepath.join([]string{vendor_dir, name})
+    joined, err := filepath.join([]string{vendor_dir, name}, context.allocator)
     if err != nil {
         return "", false
     }
 
-    clean_vendor, err2 := filepath.clean(vendor_dir)
+    clean_vendor, err2 := filepath.clean(vendor_dir, context.allocator)
     if err2 != nil {
         delete(joined)
         return "", false
