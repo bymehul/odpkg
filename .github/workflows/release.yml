@@ -33,7 +33,19 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           brew update
-          brew install llvm mbedtls
+          brew install llvm@21 mbedtls || brew install llvm@20 mbedtls
+          LLVM_FORMULA=""
+          for f in llvm@21 llvm@20 llvm@19 llvm@18 llvm@17 llvm@14; do
+            if brew list --versions "$f" >/dev/null 2>&1; then
+              LLVM_FORMULA="$f"
+              break
+            fi
+          done
+          if [ -z "$LLVM_FORMULA" ]; then
+            echo "No supported LLVM formula found for Odin build"
+            exit 1
+          fi
+          echo "LLVM_FORMULA=$LLVM_FORMULA" >> "$GITHUB_ENV"
 
       - name: Build Odin (Unix)
         if: matrix.os != 'windows-latest'
@@ -42,9 +54,13 @@ jobs:
           cd Odin
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
             MBEDTLS_PREFIX="$(brew --prefix mbedtls)"
+            LLVM_PREFIX="$(brew --prefix "${LLVM_FORMULA}")"
             export LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$LIBRARY_PATH"
+            export LIBRARY_PATH="$LLVM_PREFIX/lib:$LIBRARY_PATH"
             export DYLD_LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$DYLD_LIBRARY_PATH"
-            LLVM_CONFIG="$(brew --prefix llvm)/bin/llvm-config" make release-native
+            export DYLD_LIBRARY_PATH="$LLVM_PREFIX/lib:$DYLD_LIBRARY_PATH"
+            export PATH="$LLVM_PREFIX/bin:$PATH"
+            LLVM_CONFIG="$LLVM_PREFIX/bin/llvm-config" make release-native
           else
             make release-native
           fi
@@ -62,8 +78,12 @@ jobs:
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
             MBEDTLS_PREFIX="$(brew --prefix mbedtls)"
+            LLVM_PREFIX="$(brew --prefix "${LLVM_FORMULA}")"
             export LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$LIBRARY_PATH"
+            export LIBRARY_PATH="$LLVM_PREFIX/lib:$LIBRARY_PATH"
             export DYLD_LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$DYLD_LIBRARY_PATH"
+            export DYLD_LIBRARY_PATH="$LLVM_PREFIX/lib:$DYLD_LIBRARY_PATH"
+            export PATH="$LLVM_PREFIX/bin:$PATH"
           fi
           ODIN_EXE="$GITHUB_WORKSPACE/Odin/odin"
           if [ ! -x "$ODIN_EXE" ]; then
