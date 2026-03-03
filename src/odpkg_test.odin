@@ -67,6 +67,7 @@ config_roundtrip :: proc(t: ^testing.T) {
     cfg := Config{
         name = strings.clone("demo"),
         version = strings.clone("0.2.0"),
+        odin_version = strings.clone("dev-2026-01:f7901cffc"),
         vendor_dir = strings.clone("third_party"),
     }
     dep := Dep{
@@ -92,6 +93,7 @@ config_roundtrip :: proc(t: ^testing.T) {
 
     testing.expect(t, cfg2.name == "demo")
     testing.expect(t, cfg2.version == "0.2.0")
+    testing.expect(t, cfg2.odin_version == "dev-2026-01:f7901cffc")
     testing.expect(t, cfg2.vendor_dir == "third_party")
     testing.expect(t, len(cfg2.deps) == 1)
     if len(cfg2.deps) == 1 {
@@ -120,7 +122,7 @@ read_config_inline_dep :: proc(t: ^testing.T) {
     }
     defer delete(cfg_path)
 
-    content := "[odpkg]\nname = \"demo\"\n\n[dependencies]\nraylib = { repo = \"raysan5/raylib\", ref = \"v5.0\" }\n"
+    content := "[odpkg]\nname = \"demo\"\nodin_version = \"dev-2026-01:f7901cffc\"\n\n[dependencies]\nraylib = { repo = \"raysan5/raylib\", ref = \"v5.0\" }\n"
     werr := os.write_entire_file(cfg_path, content)
     testing.expect(t, werr == nil)
 
@@ -128,6 +130,7 @@ read_config_inline_dep :: proc(t: ^testing.T) {
     testing.expect(t, ok2)
     defer config_free(&cfg)
 
+    testing.expect(t, cfg.odin_version == "dev-2026-01:f7901cffc")
     testing.expect(t, len(cfg.deps) == 1)
     if len(cfg.deps) == 1 {
         testing.expect(t, cfg.deps[0].name == "raylib")
@@ -328,4 +331,28 @@ is_commit_hash_invalid :: proc(t: ^testing.T) {
     testing.expect(t, !is_commit_hash("main"))    // branch name
     testing.expect(t, !is_commit_hash("abc"))     // too short
     testing.expect(t, !is_commit_hash("xyz123"))  // invalid chars
+}
+
+@(test)
+parse_version_triplet_valid :: proc(t: ^testing.T) {
+    major, minor, patch, ok := parse_version_triplet("v1.2.3")
+    testing.expect(t, ok)
+    testing.expect(t, major == 1)
+    testing.expect(t, minor == 2)
+    testing.expect(t, patch == 3)
+}
+
+@(test)
+parse_version_triplet_invalid :: proc(t: ^testing.T) {
+    _, _, _, ok1 := parse_version_triplet("v1.2")
+    testing.expect(t, !ok1)
+    _, _, _, ok2 := parse_version_triplet("latest")
+    testing.expect(t, !ok2)
+}
+
+@(test)
+version_is_newer_basic :: proc(t: ^testing.T) {
+    testing.expect(t, version_is_newer("v0.7.0", "0.6.0"))
+    testing.expect(t, !version_is_newer("v0.6.0", "0.6.0"))
+    testing.expect(t, !version_is_newer("v0.5.9", "0.6.0"))
 }

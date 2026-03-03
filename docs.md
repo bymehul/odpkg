@@ -39,6 +39,7 @@ odpkg version
 ## Command Behavior
 
 - `odpkg init` creates `odpkg.toml` in the current folder.
+- `odpkg init` stores the current Odin compiler version in `odpkg.toml` as `odin_version`.
 - `odpkg add` adds or updates a dependency entry in `odpkg.toml`.
 - `odpkg add --registry <slug>` looks up a package in the registry by slug.
 - `odpkg remove` removes a dependency by alias name.
@@ -49,13 +50,15 @@ odpkg version
 - `odpkg list --registry` forces registry output.
 - `odpkg list --registry --refresh` re-fetches registry data.
 - `odpkg search <query>` filters registry by name/slug/description.
+- odpkg checks for newer releases on startup and shows a soft update notice.
 
 ## Config File (`odpkg.toml`)
 
 ```toml
 [odpkg]
 name = "my-project"
-version = "0.2.0"
+version = "0.1.0"
+odin_version = "dev-2026-01:f7901cffc"
 vendor_dir = "vendor"
 
 [dependencies]

@@ -4,6 +4,8 @@ import "core:fmt"
 import "core:os"
 
 main :: proc() {
+    check_for_updates_notice()
+
     args := os.args
     if len(args) < 2 {
         print_usage()

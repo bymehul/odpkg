@@ -27,7 +27,8 @@ cmd_init :: proc(args: []string) {
 
     cfg := Config{
         name = name,
-        version = strings.clone("0.2.0"),
+        version = strings.clone("0.1.0"),
+        odin_version = current_odin_version(),
         vendor_dir = strings.clone("vendor"),
     }
     defer config_free(&cfg)
@@ -141,6 +142,10 @@ cmd_add :: proc(args: []string) {
         return
     }
     defer config_free(&cfg)
+
+    current_odin := current_odin_version()
+    defer delete(current_odin)
+    warn_project_odin_version_mismatch(&cfg, current_odin)
 
     idx := dep_index(cfg.deps[:], alias)
     if idx >= 0 {
@@ -277,6 +282,10 @@ cmd_install :: proc() {
     }
     defer config_free(&cfg)
 
+    current_odin := current_odin_version()
+    defer delete(current_odin)
+    warn_project_odin_version_mismatch(&cfg, current_odin)
+
     if cfg.vendor_dir == "" {
         cfg.vendor_dir = strings.clone("vendor")
     }
@@ -298,7 +307,7 @@ cmd_install :: proc() {
         }
         if len(lock_deps) > 0 {
             defer free_resolved_list(&lock_deps)
-            install_from_lock(cfg.vendor_dir, lock_deps[:])
+            install_from_lock(cfg.vendor_dir, lock_deps[:], current_odin)
             return
         }
     }
@@ -310,7 +319,7 @@ cmd_install :: proc() {
     installed := make(map[string]bool)
     defer delete(installed)
 
-    install_deps_recursive(cfg.deps[:], cfg.vendor_dir, &resolved, &installed, 0)
+    install_deps_recursive(cfg.deps[:], cfg.vendor_dir, &resolved, &installed, current_odin, 0)
 
     if len(resolved) > 0 {
         _ = write_lock(LOCK_FILE, resolved[:])
@@ -324,6 +333,10 @@ cmd_update :: proc() {
         return
     }
     defer config_free(&cfg)
+
+    current_odin := current_odin_version()
+    defer delete(current_odin)
+    warn_project_odin_version_mismatch(&cfg, current_odin)
 
     if cfg.vendor_dir == "" {
         cfg.vendor_dir = strings.clone("vendor")
@@ -378,7 +391,7 @@ cmd_update :: proc() {
         installed[dep.name] = true
 
         // Check for transitive dependencies.
-        check_transitive_deps(path, cfg.vendor_dir, &resolved, &installed, 1)
+        check_transitive_deps(path, cfg.vendor_dir, &resolved, &installed, current_odin, 1)
 
         delete(path)
         append(&resolved, r)
@@ -390,7 +403,7 @@ cmd_update :: proc() {
 }
 
 // Install dependencies recursively, handling transitive deps.
-install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, depth: int) {
+install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, current_odin: string, depth: int) {
     if depth > 10 {
         fmt.eprintln("Warning: Maximum dependency depth reached (possible cycle)")
         return
@@ -434,14 +447,14 @@ install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dyna
         append(resolved, r)
 
         // Check for transitive dependencies.
-        check_transitive_deps(path, vendor_dir, resolved, installed, depth + 1)
+        check_transitive_deps(path, vendor_dir, resolved, installed, current_odin, depth + 1)
 
         delete(path)
     }
 }
 
 // Check if installed package has its own odpkg.toml and install those deps.
-check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, depth: int) {
+check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, current_odin: string, depth: int) {
     sub_config_path, join_err := filepath.join([]string{pkg_path, CONFIG_FILE}, context.allocator)
     if join_err != nil do return
     defer delete(sub_config_path)
@@ -452,14 +465,21 @@ check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[
     if !ok do return
     defer config_free(&sub_cfg)
 
+    if sub_cfg.odin_version != "" && current_odin != "" && sub_cfg.odin_version != current_odin {
+        base_name := filepath.base(pkg_path)
+        fmt.eprintln("Warning: Installed package", base_name, "was created with Odin", sub_cfg.odin_version)
+        fmt.eprintln("  Current Odin version is ", current_odin)
+        fmt.eprintln("  Please review compatibility carefully; it may not run as expected.")
+    }
+
     if len(sub_cfg.deps) > 0 {
         base_name := filepath.base(pkg_path)
         fmt.println("  Found transitive deps in:", base_name)
-        install_deps_recursive(sub_cfg.deps[:], vendor_dir, resolved, installed, depth)
+        install_deps_recursive(sub_cfg.deps[:], vendor_dir, resolved, installed, current_odin, depth)
     }
 }
 
-install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep) {
+install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep, current_odin: string) {
     for item in deps {
         if !is_safe_dep_name(item.dep.name) {
             fmt.eprintln("Invalid dependency name in lockfile:", item.dep.name)
@@ -490,6 +510,8 @@ install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep) {
             continue
         }
         delete(actual)
+
+        warn_package_odin_version_mismatch(item.dep.name, path, current_odin)
 
         // Verify hash after checkout/clone.
         if item.hash != "" {

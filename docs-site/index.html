@@ -20,7 +20,7 @@
             <div class="logo">
                 <span class="logo-icon">📦</span>
                 <span class="logo-text">odpkg</span>
-                <span class="version-badge">v0.5.2</span>
+                <span class="version-badge">v0.6.0</span>
             </div>
             <nav class="nav-links">
                 <a href="#" class="nav-link active">Docs</a>
@@ -42,6 +42,7 @@
                 <div class="nav-group">
                     <h3 class="nav-group-title">Get Started</h3>
                     <a href="#quickstart" class="nav-item active">Quickstart</a>
+                    <a href="#patch-notes" class="nav-item">Patch Notes</a>
                     <a href="#installation" class="nav-item">Installation</a>
                     <a href="#requirements" class="nav-item">Requirements</a>
                 </div>
@@ -84,7 +85,7 @@
                     </div>
                     <p class="intro">odpkg is an <strong>unofficial</strong> Odin package manager focused on simplicity
                         and vendoring. Get up and running in under a minute.</p>
-                    <p><strong>Current version:</strong> odpkg <code>v0.5.2</code> |
+                    <p><strong>Current version:</strong> odpkg <code>v0.6.0</code> |
                         <strong>Odin used for build/tests:</strong> <code>dev-2026-01:f7901cffc</code></p>
 
                     <div class="code-block">
@@ -99,6 +100,16 @@
 
                     <p>That's it! Your dependencies are now in <code>vendor/</code> and tracked in
                         <code>odpkg.lock</code>.</p>
+                </section>
+
+                <section id="patch-notes" class="section">
+                    <h2>Patch Notes (v0.6.0)</h2>
+                    <ul class="requirements-list">
+                        <li><code>odpkg init</code> now records the Odin compiler version in <code>odpkg.toml</code> as <code>odin_version</code>.</li>
+                        <li><code>odpkg add</code>, <code>odpkg install</code>, and <code>odpkg update</code> now show a soft warning when your current Odin version does not match the project's <code>odin_version</code>.</li>
+                        <li><code>odpkg install</code> now also warns when an installed package declares a different <code>odin_version</code> in its own <code>odpkg.toml</code>.</li>
+                        <li>odpkg now checks for newer releases on startup and shows a soft update notice when a newer version is available.</li>
+                    </ul>
                 </section>
 
                 <!-- Installation Section -->
@@ -117,7 +128,7 @@
                                 <span>Bash</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>VERSION=v0.5.2
+                            <pre><code>VERSION=v0.6.0
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -131,7 +142,7 @@ chmod +x odpkg
                                 <span>PowerShell</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>$version = "v0.5.2"
+                            <pre><code>$version = "v0.6.0"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help</code></pre>
@@ -167,7 +178,8 @@ Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$vers
                         <div class="code-header"><span>odpkg.toml</span></div>
                         <pre><code>[odpkg]
 name = "my-project"
-version = "0.2.0"
+version = "0.1.0"
+odin_version = "dev-2026-01:f7901cffc"
 vendor_dir = "vendor"
 
 [dependencies]</code></pre>
@@ -216,6 +228,7 @@ vendor_dir = "vendor"
                         <li>Uses <code>odpkg.lock</code> if present (reproducible builds)</li>
                         <li>Otherwise resolves from <code>odpkg.toml</code></li>
                         <li>Automatically installs transitive dependencies</li>
+                        <li>Shows a soft warning when recorded <code>odin_version</code> does not match your current Odin version</li>
                         <li>Verifies SHA256 hashes for integrity</li>
                     </ul>
                 </section>
@@ -254,7 +267,7 @@ vendor_dir = "vendor"
                     <p>Print the current version of odpkg.</p>
                     <div class="code-block">
                         <pre><code><span class="prompt">$</span> odpkg version
-odpkg 0.5.2</code></pre>
+odpkg 0.6.0</code></pre>
                     </div>
                     <p>Also available as <code>odpkg -v</code> or <code>odpkg --version</code>.</p>
                 </section>
@@ -289,6 +302,7 @@ Usage:
                         <pre><code>[odpkg]
 name = "my-game"
 version = "1.0.0"
+odin_version = "dev-2026-01:f7901cffc"
 vendor_dir = "vendor"
 
 [dependencies]
@@ -407,6 +421,7 @@ hash = "sha256:e3b0c44298fc1c149..."</code></pre>
             <h4>On this page</h4>
             <nav class="toc-nav">
                 <a href="#quickstart" class="toc-item">Quickstart</a>
+                <a href="#patch-notes" class="toc-item">Patch Notes</a>
                 <a href="#installation" class="toc-item">Installation</a>
                 <a href="#requirements" class="toc-item">Requirements</a>
                 <a href="#init" class="toc-item">init</a>

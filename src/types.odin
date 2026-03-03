@@ -1,6 +1,6 @@
 package main
 
-VERSION     :: "0.5.2"
+VERSION     :: "0.6.0"
 CONFIG_FILE :: "odpkg.toml"
 LOCK_FILE   :: "odpkg.lock"
 
@@ -13,6 +13,7 @@ Dep :: struct {
 Config :: struct {
     name:       string,
     version:    string,
+    odin_version: string,
     vendor_dir: string,
     deps:       [dynamic]Dep,
 }

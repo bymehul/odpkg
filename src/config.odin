@@ -49,6 +49,8 @@ read_config :: proc(path: string) -> (Config, bool) {
                 cfg.name = strings.clone(value)
             case "version":
                 cfg.version = strings.clone(value)
+            case "odin_version":
+                cfg.odin_version = strings.clone(value)
             case "vendor_dir":
                 if value != "" {
                     delete(cfg.vendor_dir)
@@ -82,6 +84,11 @@ write_config :: proc(path: string, cfg: Config) -> bool {
     }
     if cfg.version != "" {
         line := strings.concatenate({"version = \"", cfg.version, "\"\n"})
+        strings.write_string(&sb, line)
+        delete(line)
+    }
+    if cfg.odin_version != "" {
+        line := strings.concatenate({"odin_version = \"", cfg.odin_version, "\"\n"})
         strings.write_string(&sb, line)
         delete(line)
     }
@@ -225,6 +232,7 @@ config_free :: proc(cfg: ^Config) {
     if cfg == nil do return
     if cfg.name != "" do delete(cfg.name)
     if cfg.version != "" do delete(cfg.version)
+    if cfg.odin_version != "" do delete(cfg.odin_version)
     if cfg.vendor_dir != "" do delete(cfg.vendor_dir)
     for dep in cfg.deps {
         if dep.name != "" do delete(dep.name)
