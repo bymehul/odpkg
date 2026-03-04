@@ -142,9 +142,5 @@ format_version_tag :: proc(major, minor, patch: int) -> string {
     major_s := fmt.tprint(major)
     minor_s := fmt.tprint(minor)
     patch_s := fmt.tprint(patch)
-    out := strings.concatenate({"v", major_s, ".", minor_s, ".", patch_s})
-    delete(major_s)
-    delete(minor_s)
-    delete(patch_s)
-    return out
+    return strings.concatenate({"v", major_s, ".", minor_s, ".", patch_s})
 }

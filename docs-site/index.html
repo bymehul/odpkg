@@ -20,7 +20,7 @@
             <div class="logo">
                 <span class="logo-icon">📦</span>
                 <span class="logo-text">odpkg</span>
-                <span class="version-badge">v0.6.0</span>
+                <span class="version-badge">v0.6.1</span>
             </div>
             <nav class="nav-links">
                 <a href="#" class="nav-link active">Docs</a>
@@ -85,7 +85,7 @@
                     </div>
                     <p class="intro">odpkg is an <strong>unofficial</strong> Odin package manager focused on simplicity
                         and vendoring. Get up and running in under a minute.</p>
-                    <p><strong>Current version:</strong> odpkg <code>v0.6.0</code> |
+                    <p><strong>Current version:</strong> odpkg <code>v0.6.1</code> |
                         <strong>Odin used for build/tests:</strong> <code>dev-2026-01:f7901cffc</code></p>
 
                     <div class="code-block">
@@ -103,8 +103,9 @@
                 </section>
 
                 <section id="patch-notes" class="section">
-                    <h2>Patch Notes (v0.6.0)</h2>
+                    <h2>Patch Notes (v0.6.1)</h2>
                     <ul class="requirements-list">
+                        <li>Fixed a startup crash in some Linux environments (segmentation fault on <code>--help</code> / normal launch) caused by incorrect temporary string cleanup in update-check formatting.</li>
                         <li><code>odpkg init</code> now records the Odin compiler version in <code>odpkg.toml</code> as <code>odin_version</code>.</li>
                         <li><code>odpkg add</code>, <code>odpkg install</code>, and <code>odpkg update</code> now show a soft warning when your current Odin version does not match the project's <code>odin_version</code>.</li>
                         <li><code>odpkg install</code> now also warns when an installed package declares a different <code>odin_version</code> in its own <code>odpkg.toml</code>.</li>
@@ -128,7 +129,7 @@
                                 <span>Bash</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>VERSION=v0.6.0
+                            <pre><code>VERSION=v0.6.1
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -142,7 +143,7 @@ chmod +x odpkg
                                 <span>PowerShell</span>
                                 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             </div>
-                            <pre><code>$version = "v0.6.0"
+                            <pre><code>$version = "v0.6.1"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help</code></pre>
@@ -267,7 +268,7 @@ vendor_dir = "vendor"
                     <p>Print the current version of odpkg.</p>
                     <div class="code-block">
                         <pre><code><span class="prompt">$</span> odpkg version
-odpkg 0.6.0</code></pre>
+odpkg 0.6.1</code></pre>
                     </div>
                     <p>Also available as <code>odpkg -v</code> or <code>odpkg --version</code>.</p>
                 </section>

@@ -356,3 +356,10 @@ version_is_newer_basic :: proc(t: ^testing.T) {
     testing.expect(t, !version_is_newer("v0.6.0", "0.6.0"))
     testing.expect(t, !version_is_newer("v0.5.9", "0.6.0"))
 }
+
+@(test)
+format_version_tag_basic :: proc(t: ^testing.T) {
+    tag := format_version_tag(0, 6, 1)
+    defer delete(tag)
+    testing.expect(t, tag == "v0.6.1")
+}
