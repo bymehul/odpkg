@@ -4,7 +4,7 @@ An **unofficial** open-source package manager for Odin. It is vendor-first and k
 
 Current versions:
 - odpkg: `v0.6.1-updated`
-- Odin used for build/tests: `dev-2026-04:c87d1a3cf`
+- Odin used for build/tests: `dev-2026-06:6fdaedf18`
 
 Principles:
 - GitHub-only (v0.1)
