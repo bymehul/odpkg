@@ -42,6 +42,11 @@ odpkg install
 
 ## Install (Build From Source)
 
+**macOS Users:** Make sure to install the required dependencies first:
+```bash
+brew install llvm mbedtls
+```
+
 ```bash
 git clone https://github.com/bymehul/odpkg
 cd odpkg
