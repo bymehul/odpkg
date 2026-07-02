@@ -1,6 +1,6 @@
 package main
 
-VERSION     :: "0.6.1-updated"
+VERSION     :: "0.6.2"
 CONFIG_FILE :: "odpkg.toml"
 LOCK_FILE   :: "odpkg.lock"
 
