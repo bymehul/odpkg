@@ -18,7 +18,7 @@ Principles:
 - `odpkg add`, `odpkg install`, and `odpkg update` now show a soft warning if your current Odin version differs from the project's `odin_version`.
 - `odpkg install` now also shows a soft warning when an installed package's own `odpkg.toml` declares a different `odin_version`.
 - odpkg now checks for newer releases on startup and shows a soft "update available" notice when a newer version exists.
-- Verified against Odin `dev-2026-04:c87d1a3cf`.
+- Verified against Odin `dev-2026-06:6fdaedf18`.
 
 ## Quick Start
 

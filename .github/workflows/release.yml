@@ -55,6 +55,10 @@ jobs:
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
             MBEDTLS_PREFIX="$(brew --prefix mbedtls)"
             LLVM_PREFIX="$(brew --prefix "${LLVM_FORMULA}")"
+            
+            # Force static linking of mbedtls by removing the dynamic libraries
+            rm -f "$MBEDTLS_PREFIX/lib/"*.dylib
+            
             export LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$LIBRARY_PATH"
             export LIBRARY_PATH="$LLVM_PREFIX/lib:$LIBRARY_PATH"
             export DYLD_LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$DYLD_LIBRARY_PATH"
@@ -79,6 +83,10 @@ jobs:
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
             MBEDTLS_PREFIX="$(brew --prefix mbedtls)"
             LLVM_PREFIX="$(brew --prefix "${LLVM_FORMULA}")"
+            
+            # Force static linking of mbedtls by removing the dynamic libraries
+            rm -f "$MBEDTLS_PREFIX/lib/"*.dylib
+            
             export LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$LIBRARY_PATH"
             export LIBRARY_PATH="$LLVM_PREFIX/lib:$LIBRARY_PATH"
             export DYLD_LIBRARY_PATH="$MBEDTLS_PREFIX/lib:$DYLD_LIBRARY_PATH"
