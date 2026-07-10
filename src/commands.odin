@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:path/filepath"
+import "core:text/regex"
 
 cmd_init :: proc(args: []string) {
     if os.exists(CONFIG_FILE) {
@@ -371,8 +372,10 @@ cmd_update :: proc() {
                 delete(path)
                 continue
             }
+            cleanup_ignored_files(path)
         } else {
             update_dep(dep, path)
+            cleanup_ignored_files(path)
         }
 
         commit := git_rev_parse(path)
@@ -421,6 +424,7 @@ install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dyna
 
         if os.exists(path) && os.is_dir(path) {
             fmt.println("Exists:", dep.name)
+            cleanup_ignored_files(path)
         } else {
             if !clone_dep(dep, path) {
                 fmt.eprintln("Failed to install:", dep.name)
@@ -428,6 +432,7 @@ install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dyna
                 continue
             }
             fmt.println("Installed:", dep.name)
+            cleanup_ignored_files(path)
         }
 
         commit := git_rev_parse(path)
@@ -492,12 +497,14 @@ install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep, current_odin
             if !update_dep_to_commit(path, item.commit) {
                 fmt.eprintln("Failed to checkout:", item.dep.name)
             }
+            cleanup_ignored_files(path)
         } else {
             if !ensure_dep_at_commit(item.dep.repo, path, item.commit) {
                 fmt.eprintln("Failed to install:", item.dep.name)
                 delete(path)
                 continue
             }
+            cleanup_ignored_files(path)
         }
 
         actual := git_rev_parse(path)
@@ -536,4 +543,62 @@ free_resolved_list :: proc(list: ^[dynamic]Resolved_Dep) {
         if r.hash != "" do delete(r.hash)
     }
     delete(list^)
+}
+
+cleanup_ignored_files :: proc(pkg_path: string) {
+    config_path, join_err := filepath.join([]string{pkg_path, CONFIG_FILE}, context.temp_allocator)
+    if join_err != nil do return
+    
+    if !os.exists(config_path) do return
+
+    cfg, ok := read_config(config_path)
+    if !ok do return
+    defer config_free(&cfg)
+
+    if len(cfg.ignores) == 0 do return
+
+    regexes := make([dynamic]regex.Regular_Expression, context.temp_allocator)
+    for pattern in cfg.ignores {
+        re, err := regex.create(pattern, {}, context.temp_allocator, context.temp_allocator)
+        if err == nil {
+            append(&regexes, re)
+        } else {
+            fmt.eprintln("Warning: Invalid regex in [ignore] section:", pattern)
+        }
+    }
+
+    if len(regexes) == 0 do return
+
+    w := os.walker_create(pkg_path)
+    defer os.walker_destroy(&w)
+
+    to_delete := make([dynamic]string, context.temp_allocator)
+
+    for info in os.walker_walk(&w) {
+        rel_path, rel_err := filepath.rel(pkg_path, info.fullpath, context.temp_allocator)
+        if rel_err != .None do continue
+        
+        slash_path, slash_err := filepath.replace_separators(rel_path, '/', context.temp_allocator)
+        if slash_err != nil do continue
+        
+        matched := false
+        for re in regexes {
+            _, is_match := regex.match(re, slash_path)
+            if is_match {
+                matched = true
+                break
+            }
+        }
+        
+        if matched {
+            if os.is_dir(info.fullpath) {
+                os.walker_skip_dir(&w)
+            }
+            append(&to_delete, strings.clone(info.fullpath, context.temp_allocator))
+        }
+    }
+    
+    for path in to_delete {
+        os.remove_all(path)
+    }
 }

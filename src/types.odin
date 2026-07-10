@@ -1,6 +1,6 @@
 package main
 
-VERSION     :: "0.6.2"
+VERSION     :: "0.6.3"
 CONFIG_FILE :: "odpkg.toml"
 LOCK_FILE   :: "odpkg.lock"
 
@@ -16,6 +16,7 @@ Config :: struct {
     odin_version: string,
     vendor_dir: string,
     deps:       [dynamic]Dep,
+    ignores:    [dynamic]string,
 }
 
 Resolved_Dep :: struct {

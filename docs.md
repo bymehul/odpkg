@@ -63,7 +63,13 @@ vendor_dir = "vendor"
 
 [dependencies]
 raylib = { repo = "raysan5/raylib", ref = "v5.0" }
+
+[ignore]
+".*_test\\.odin$"
+"benchmark/.*"
 ```
+
+The `[ignore]` section allows you to define regex patterns for files and directories that should be automatically removed after a dependency is downloaded. This helps keep your `vendor/` directory clean.
 
 ## Dependency Syntax
 

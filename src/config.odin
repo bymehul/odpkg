@@ -36,11 +36,16 @@ read_config :: proc(path: string) -> (Config, bool) {
         }
 
         eq := strings.index_byte(trimmed, '=')
-        if eq < 0 do continue
+        if eq < 0 {
+            if section == "ignore" {
+                append(&cfg.ignores, strings.clone(trim_quotes(trimmed)))
+            }
+            continue
+        }
         key := strings.trim_space(trimmed[:eq])
         raw := strings.trim_space(trimmed[eq+1:])
 
-        // We only care about [odpkg] and [dependencies].
+        // We only care about [odpkg], [dependencies], and [ignore].
         switch section {
         case "odpkg":
             value := trim_quotes(raw)
@@ -66,6 +71,9 @@ read_config :: proc(path: string) -> (Config, bool) {
                 ref  = strings.clone(ref),
             }
             append(&cfg.deps, dep)
+        case "ignore":
+            value := trim_quotes(raw)
+            append(&cfg.ignores, strings.clone(value))
         }
     }
 
@@ -107,6 +115,16 @@ write_config :: proc(path: string, cfg: Config) -> bool {
             line := strings.concatenate({dep.name, " = { repo = \"", dep.repo, "\" }\n"})
             strings.write_string(&sb, line)
             delete(line)
+        }
+    }
+    
+    if len(cfg.ignores) > 0 {
+        strings.write_string(&sb, "\n[ignore]\n")
+        for ig in cfg.ignores {
+            // Write as bare strings, though strictly not valid TOML, 
+            // the custom parser handles it and it matches .gitignore style.
+            strings.write_string(&sb, ig)
+            strings.write_string(&sb, "\n")
         }
     }
 
@@ -240,4 +258,9 @@ config_free :: proc(cfg: ^Config) {
         if dep.ref != "" do delete(dep.ref)
     }
     delete(cfg.deps)
+    
+    for ig in cfg.ignores {
+        delete(ig)
+    }
+    delete(cfg.ignores)
 }
