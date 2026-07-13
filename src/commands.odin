@@ -4,7 +4,7 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:path/filepath"
-import "core:text/regex"
+
 
 cmd_init :: proc(args: []string) {
     if os.exists(CONFIG_FILE) {
@@ -39,7 +39,7 @@ cmd_init :: proc(args: []string) {
         return
     }
 
-    _ = os.make_directory_all(cfg.vendor_dir)
+    ensure_vendor_dir(cfg.vendor_dir)
     fmt.println("Initialized", CONFIG_FILE)
 }
 
@@ -297,7 +297,7 @@ cmd_install :: proc() {
         return
     }
 
-    _ = os.make_directory_all(cfg.vendor_dir)
+    ensure_vendor_dir(cfg.vendor_dir)
 
     // Prefer lockfile for reproducible installs when available.
     if os.exists(LOCK_FILE) {
@@ -349,7 +349,7 @@ cmd_update :: proc() {
         return
     }
 
-    _ = os.make_directory_all(cfg.vendor_dir)
+    ensure_vendor_dir(cfg.vendor_dir)
 
     resolved := make([dynamic]Resolved_Dep)
     defer free_resolved_list(&resolved)
@@ -557,18 +557,6 @@ cleanup_ignored_files :: proc(pkg_path: string) {
 
     if len(cfg.ignores) == 0 do return
 
-    regexes := make([dynamic]regex.Regular_Expression, context.temp_allocator)
-    for pattern in cfg.ignores {
-        re, err := regex.create(pattern, {}, context.temp_allocator, context.temp_allocator)
-        if err == nil {
-            append(&regexes, re)
-        } else {
-            fmt.eprintln("Warning: Invalid regex in [ignore] section:", pattern)
-        }
-    }
-
-    if len(regexes) == 0 do return
-
     w := os.walker_create(pkg_path)
     defer os.walker_destroy(&w)
 
@@ -582,9 +570,16 @@ cleanup_ignored_files :: proc(pkg_path: string) {
         if slash_err != nil do continue
         
         matched := false
-        for re in regexes {
-            _, is_match := regex.match(re, slash_path)
-            if is_match {
+        base_name := filepath.base(slash_path)
+        for pattern in cfg.ignores {
+            is_match, err := filepath.match(pattern, slash_path)
+            if err == nil && is_match {
+                matched = true
+                break
+            }
+            
+            is_match2, err2 := filepath.match(pattern, base_name)
+            if err2 == nil && is_match2 {
                 matched = true
                 break
             }
@@ -600,5 +595,16 @@ cleanup_ignored_files :: proc(pkg_path: string) {
     
     for path in to_delete {
         os.remove_all(path)
+    }
+}
+
+ensure_vendor_dir :: proc(vendor_dir: string) {
+    if !os.exists(vendor_dir) {
+        _ = os.make_directory_all(vendor_dir)
+    }
+    
+    gitignore_path, err := filepath.join([]string{vendor_dir, ".gitignore"}, context.temp_allocator)
+    if err == nil && !os.exists(gitignore_path) {
+        _ = os.write_entire_file(gitignore_path, transmute([]byte)string("*\n"))
     }
 }

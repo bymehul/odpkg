@@ -363,3 +363,98 @@ format_version_tag_basic :: proc(t: ^testing.T) {
     defer delete(tag)
     testing.expect(t, tag == "v0.6.1")
 }
+
+@(test)
+ensure_vendor_dir_injects_gitignore :: proc(t: ^testing.T) {
+    tmp_dir, err := os.make_directory_temp("", "odpkg_vendor_*", context.allocator)
+    if err != nil {
+        testing.fail_now(t, "failed to create temp dir")
+    }
+    defer {
+        _ = os.remove_all(tmp_dir)
+        delete(tmp_dir)
+    }
+
+    vendor_dir, join_err := filepath.join([]string{tmp_dir, "vendor"}, context.allocator)
+    if join_err != nil {
+        testing.fail_now(t, "failed to build vendor path")
+    }
+    defer delete(vendor_dir)
+
+    // Call ensure_vendor_dir
+    ensure_vendor_dir(vendor_dir)
+
+    // Verify it exists
+    testing.expect(t, os.exists(vendor_dir), "vendor dir should exist")
+
+    // Verify .gitignore was created
+    gitignore_path, g_err := filepath.join([]string{vendor_dir, ".gitignore"}, context.allocator)
+    if g_err != nil {
+        testing.fail_now(t, "failed to build gitignore path")
+    }
+    defer delete(gitignore_path)
+
+    testing.expect(t, os.exists(gitignore_path), ".gitignore should be injected")
+    content, c_ok := os.read_entire_file(gitignore_path, context.allocator)
+    if c_ok == nil {
+        defer delete(content)
+        testing.expect(t, string(content) == "*\n", "gitignore content should be *")
+    } else {
+        testing.fail_now(t, "could not read injected .gitignore")
+    }
+}
+
+@(test)
+cleanup_ignored_files_glob_matching :: proc(t: ^testing.T) {
+    tmp_dir, err := os.make_directory_temp("", "odpkg_cleanup_*", context.allocator)
+    if err != nil {
+        testing.fail_now(t, "failed to create temp dir")
+    }
+    defer {
+        _ = os.remove_all(tmp_dir)
+        delete(tmp_dir)
+    }
+
+    // Create a dummy odpkg.toml in the tmp_dir with some ignores
+    cfg_path, path_err := filepath.join([]string{tmp_dir, CONFIG_FILE}, context.allocator)
+    if path_err != nil {
+        testing.fail_now(t, "failed to build config path")
+    }
+    defer delete(cfg_path)
+    
+    cfg_content := "[odpkg]\nname=\"dep\"\n[ignore]\n\"*.bmp\"\n\"*.md\"\n\"build/*\"\n"
+    _ = os.write_entire_file(cfg_path, transmute([]byte)cfg_content)
+
+    // Create some files that should be ignored
+    file1, _ := filepath.join([]string{tmp_dir, "image.bmp"}, context.allocator)
+    _ = os.write_entire_file(file1, transmute([]byte)string("data"))
+    defer delete(file1)
+    
+    file2, _ := filepath.join([]string{tmp_dir, "readme.md"}, context.allocator)
+    _ = os.write_entire_file(file2, transmute([]byte)string("data"))
+    defer delete(file2)
+
+    build_dir, _ := filepath.join([]string{tmp_dir, "build"}, context.allocator)
+    os.make_directory(build_dir)
+    defer delete(build_dir)
+    
+    file3, _ := filepath.join([]string{build_dir, "out.o"}, context.allocator)
+    _ = os.write_entire_file(file3, transmute([]byte)string("data"))
+    defer delete(file3)
+
+    // Create a file that should NOT be ignored
+    file4, _ := filepath.join([]string{tmp_dir, "source.odin"}, context.allocator)
+    _ = os.write_entire_file(file4, transmute([]byte)string("data"))
+    defer delete(file4)
+
+    // Run cleanup
+    cleanup_ignored_files(tmp_dir)
+
+    // Assert that ignored files are deleted
+    testing.expect(t, !os.exists(file1), "*.bmp should be deleted")
+    testing.expect(t, !os.exists(file2), "*.md should be deleted")
+    testing.expect(t, !os.exists(file3), "build/* files should be deleted")
+    
+    // Assert that source.odin is NOT deleted
+    testing.expect(t, os.exists(file4), "source.odin should NOT be deleted")
+}

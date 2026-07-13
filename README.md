@@ -13,7 +13,7 @@ Principles:
 
 ## Patch Notes (v0.6.3)
 
-- Added support for `[ignore]` section in `odpkg.toml` allowing `.gitignore`-style regex rules to prune unwanted files from downloaded packages (Fixes #4).
+- Added support for `[ignore]` section in `odpkg.toml` allowing `.gitignore`-style glob rules to prune unwanted files from downloaded packages (Fixes #4). Automatically injects `.gitignore` containing `*` into the vendor dir to prevent accidental commits.
 - Fixed a startup crash in some Linux environments (segmentation fault on `--help` / normal launch) caused by incorrect temporary string cleanup in update-check formatting.
 - `odpkg init` now records the Odin compiler version in `odpkg.toml` as `odin_version`.
 - `odpkg add`, `odpkg install`, and `odpkg update` now show a soft warning if your current Odin version differs from the project's `odin_version`.

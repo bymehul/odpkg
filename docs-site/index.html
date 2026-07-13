@@ -105,7 +105,7 @@
                 <section id="patch-notes" class="section">
                     <h2>Patch Notes (v0.6.3)</h2>
                     <ul class="requirements-list">
-                        <li>Added support for <code>[ignore]</code> section in <code>odpkg.toml</code> allowing <code>.gitignore</code>-style regex rules to prune unwanted files from downloaded packages (Fixes #4).</li>
+                        <li>Added support for <code>[ignore]</code> section in <code>odpkg.toml</code> allowing <code>.gitignore</code>-style glob rules to prune unwanted files from downloaded packages (Fixes #4). Automatically injects <code>.gitignore</code> containing <code>*</code> into the vendor dir to prevent accidental commits.</li>
                         <li>Fixed a startup crash in some Linux environments (segmentation fault on <code>--help</code> / normal launch) caused by incorrect temporary string cleanup in update-check formatting.</li>
                         <li><code>odpkg init</code> now records the Odin compiler version in <code>odpkg.toml</code> as <code>odin_version</code>.</li>
                         <li><code>odpkg add</code>, <code>odpkg install</code>, and <code>odpkg update</code> now show a soft warning when your current Odin version does not match the project's <code>odin_version</code>.</li>
@@ -312,10 +312,11 @@ raylib = { repo = "raysan5/raylib", ref = "v5.0" }
 tempo = { repo = "kalsprite/tempo", ref = "main" }
                     
 [ignore]
-".*_test\\.odin$"
-"benchmark/.*"</code></pre>
+"*_test.odin"
+"benchmark/*"
+"*.bmp"</code></pre>
                     </div>
-                    <p>The <code>[ignore]</code> section allows you to define regex patterns for files and directories that should be automatically removed after a dependency is downloaded. This helps keep your <code>vendor/</code> directory clean.</p>
+                    <p>The <code>[ignore]</code> section allows you to define glob patterns (similar to <code>.gitignore</code>) for files and directories that should be automatically removed after a dependency is downloaded. This helps keep your <code>vendor/</code> directory clean. Note that <code>odpkg</code> also automatically creates a <code>.gitignore</code> inside the vendor directory containing <code>*</code>, preventing you from accidentally committing downloaded packages.</p>
                 </section>
 
                 <section id="lockfile" class="section">

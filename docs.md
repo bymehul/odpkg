@@ -65,11 +65,12 @@ vendor_dir = "vendor"
 raylib = { repo = "raysan5/raylib", ref = "v5.0" }
 
 [ignore]
-".*_test\\.odin$"
-"benchmark/.*"
+"*_test.odin"
+"benchmark/*"
+"*.bmp"
 ```
 
-The `[ignore]` section allows you to define regex patterns for files and directories that should be automatically removed after a dependency is downloaded. This helps keep your `vendor/` directory clean.
+The `[ignore]` section allows you to define glob patterns (similar to `.gitignore`) for files and directories that should be automatically removed after a dependency is downloaded. This helps keep your `vendor/` directory clean. Note that `odpkg` also automatically creates a `.gitignore` inside the vendor directory containing `*`, preventing you from accidentally committing downloaded packages.
 
 ## Dependency Syntax
 
