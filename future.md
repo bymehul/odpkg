@@ -26,3 +26,4 @@
 - Subdir packages and monorepo support.
 - Non-GitHub hosts (GitLab, Bitbucket, Codeberg, self-hosted).
 - Private repo auth (token/SSH).
+- Implement Git sparse-checkout for faster dependency downloads.

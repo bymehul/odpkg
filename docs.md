@@ -65,12 +65,11 @@ vendor_dir = "vendor"
 raylib = { repo = "raysan5/raylib", ref = "v5.0" }
 
 [ignore]
-"*_test.odin"
-"benchmark/*"
-"*.bmp"
+self = ["*_test.odin", "benchmark/*", "*.bmp"]
+raylib = ["examples/*", "tests/*"]
 ```
 
-The `[ignore]` section allows you to define glob patterns (similar to `.gitignore`) for files and directories that should be automatically removed after a dependency is downloaded. This helps keep your `vendor/` directory clean. Note that `odpkg` also automatically creates a `.gitignore` inside the vendor directory containing `*`, preventing you from accidentally committing downloaded packages.
+The `[ignore]` section allows you to define glob patterns (similar to `.gitignore`) as standard TOML arrays mapping to dependency names. This helps keep your `vendor/` directory clean. If you want a package to clean up files from its own repository when someone else downloads it, use the special key `self = [...]`. If you want to force ignore rules on a dependency you pull, use its name (e.g. `raylib = [...]`). Note that `odpkg` also automatically creates a `.gitignore` inside the vendor directory containing `*`, preventing you from accidentally committing downloaded packages.
 
 ## Dependency Syntax
 

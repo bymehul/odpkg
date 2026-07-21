@@ -422,7 +422,7 @@ cleanup_ignored_files_glob_matching :: proc(t: ^testing.T) {
     }
     defer delete(cfg_path)
     
-    cfg_content := "[odpkg]\nname=\"dep\"\n[ignore]\n\"*.bmp\"\n\"*.md\"\n\"build/*\"\n"
+    cfg_content := "[odpkg]\nname=\"dep\"\n[ignore]\nself = [\"*.bmp\", \"*.md\", \"build/*\"]\n"
     _ = os.write_entire_file(cfg_path, transmute([]byte)cfg_content)
 
     // Create some files that should be ignored
@@ -448,7 +448,7 @@ cleanup_ignored_files_glob_matching :: proc(t: ^testing.T) {
     defer delete(file4)
 
     // Run cleanup
-    cleanup_ignored_files(tmp_dir)
+    cleanup_ignored_files(tmp_dir, "dep", nil)
 
     // Assert that ignored files are deleted
     testing.expect(t, !os.exists(file1), "*.bmp should be deleted")

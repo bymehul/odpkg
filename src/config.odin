@@ -37,9 +37,6 @@ read_config :: proc(path: string) -> (Config, bool) {
 
         eq := strings.index_byte(trimmed, '=')
         if eq < 0 {
-            if section == "ignore" {
-                append(&cfg.ignores, strings.clone(trim_quotes(trimmed)))
-            }
             continue
         }
         key := strings.trim_space(trimmed[:eq])
@@ -61,6 +58,11 @@ read_config :: proc(path: string) -> (Config, bool) {
                     delete(cfg.vendor_dir)
                     cfg.vendor_dir = strings.clone(value)
                 }
+            case "ignore":
+                if arr, ok_arr := parse_string_array(raw); ok_arr {
+                    if cfg.ignores == nil do cfg.ignores = make(map[string][dynamic]string)
+                    cfg.ignores[strings.clone("self")] = arr
+                }
             }
         case "dependencies":
             repo, ref, ok_dep := parse_dep_value(raw)
@@ -72,8 +74,10 @@ read_config :: proc(path: string) -> (Config, bool) {
             }
             append(&cfg.deps, dep)
         case "ignore":
-            value := trim_quotes(raw)
-            append(&cfg.ignores, strings.clone(value))
+            if arr, ok_arr := parse_string_array(raw); ok_arr {
+                if cfg.ignores == nil do cfg.ignores = make(map[string][dynamic]string)
+                cfg.ignores[strings.clone(key)] = arr
+            }
         }
     }
 
@@ -120,11 +124,16 @@ write_config :: proc(path: string, cfg: Config) -> bool {
     
     if len(cfg.ignores) > 0 {
         strings.write_string(&sb, "\n[ignore]\n")
-        for ig in cfg.ignores {
-            // Write as bare strings, though strictly not valid TOML, 
-            // the custom parser handles it and it matches .gitignore style.
-            strings.write_string(&sb, ig)
-            strings.write_string(&sb, "\n")
+        for k, v in cfg.ignores {
+            strings.write_string(&sb, k)
+            strings.write_string(&sb, " = [")
+            for ig, i in v {
+                strings.write_string(&sb, "\"")
+                strings.write_string(&sb, ig)
+                strings.write_string(&sb, "\"")
+                if i < len(v)-1 do strings.write_string(&sb, ", ")
+            }
+            strings.write_string(&sb, "]\n")
         }
     }
 
@@ -259,8 +268,31 @@ config_free :: proc(cfg: ^Config) {
     }
     delete(cfg.deps)
     
-    for ig in cfg.ignores {
-        delete(ig)
+    for k, v in cfg.ignores {
+        delete(k)
+        for ig in v do delete(ig)
+        delete(v)
     }
     delete(cfg.ignores)
+}
+
+parse_string_array :: proc(s: string) -> (res: [dynamic]string, ok: bool) {
+    trimmed := strings.trim_space(s)
+    if !strings.has_prefix(trimmed, "[") || !strings.has_suffix(trimmed, "]") {
+        return nil, false
+    }
+    inner := trimmed[1:len(trimmed)-1]
+    
+    parts, err := strings.split(inner, ",")
+    if err != nil do return nil, false
+    defer delete(parts)
+    
+    arr := make([dynamic]string)
+    for p in parts {
+        p_trimmed := strings.trim_space(p)
+        if len(p_trimmed) > 0 {
+            append(&arr, strings.clone(trim_quotes(p_trimmed)))
+        }
+    }
+    return arr, true
 }

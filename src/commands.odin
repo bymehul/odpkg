@@ -308,7 +308,7 @@ cmd_install :: proc() {
         }
         if len(lock_deps) > 0 {
             defer free_resolved_list(&lock_deps)
-            install_from_lock(cfg.vendor_dir, lock_deps[:], current_odin)
+            install_from_lock(cfg.vendor_dir, lock_deps[:], current_odin, cfg.ignores)
             return
         }
     }
@@ -320,7 +320,7 @@ cmd_install :: proc() {
     installed := make(map[string]bool)
     defer delete(installed)
 
-    install_deps_recursive(cfg.deps[:], cfg.vendor_dir, &resolved, &installed, current_odin, 0)
+    install_deps_recursive(cfg.deps[:], cfg.vendor_dir, &resolved, &installed, current_odin, 0, cfg.ignores)
 
     if len(resolved) > 0 {
         _ = write_lock(LOCK_FILE, resolved[:])
@@ -372,10 +372,10 @@ cmd_update :: proc() {
                 delete(path)
                 continue
             }
-            cleanup_ignored_files(path)
+            cleanup_ignored_files(path, dep.name, cfg.ignores)
         } else {
             update_dep(dep, path)
-            cleanup_ignored_files(path)
+            cleanup_ignored_files(path, dep.name, cfg.ignores)
         }
 
         commit := git_rev_parse(path)
@@ -406,7 +406,7 @@ cmd_update :: proc() {
 }
 
 // Install dependencies recursively, handling transitive deps.
-install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, current_odin: string, depth: int) {
+install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dynamic]Resolved_Dep, installed: ^map[string]bool, current_odin: string, depth: int, parent_ignores: map[string][dynamic]string) {
     if depth > 10 {
         fmt.eprintln("Warning: Maximum dependency depth reached (possible cycle)")
         return
@@ -424,7 +424,7 @@ install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dyna
 
         if os.exists(path) && os.is_dir(path) {
             fmt.println("Exists:", dep.name)
-            cleanup_ignored_files(path)
+            cleanup_ignored_files(path, dep.name, parent_ignores)
         } else {
             if !clone_dep(dep, path) {
                 fmt.eprintln("Failed to install:", dep.name)
@@ -432,7 +432,7 @@ install_deps_recursive :: proc(deps: []Dep, vendor_dir: string, resolved: ^[dyna
                 continue
             }
             fmt.println("Installed:", dep.name)
-            cleanup_ignored_files(path)
+            cleanup_ignored_files(path, dep.name, parent_ignores)
         }
 
         commit := git_rev_parse(path)
@@ -480,11 +480,11 @@ check_transitive_deps :: proc(pkg_path: string, vendor_dir: string, resolved: ^[
     if len(sub_cfg.deps) > 0 {
         base_name := filepath.base(pkg_path)
         fmt.println("  Found transitive deps in:", base_name)
-        install_deps_recursive(sub_cfg.deps[:], vendor_dir, resolved, installed, current_odin, depth)
+        install_deps_recursive(sub_cfg.deps[:], vendor_dir, resolved, installed, current_odin, depth, sub_cfg.ignores)
     }
 }
 
-install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep, current_odin: string) {
+install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep, current_odin: string, parent_ignores: map[string][dynamic]string) {
     for item in deps {
         if !is_safe_dep_name(item.dep.name) {
             fmt.eprintln("Invalid dependency name in lockfile:", item.dep.name)
@@ -497,14 +497,14 @@ install_from_lock :: proc(vendor_dir: string, deps: []Resolved_Dep, current_odin
             if !update_dep_to_commit(path, item.commit) {
                 fmt.eprintln("Failed to checkout:", item.dep.name)
             }
-            cleanup_ignored_files(path)
+            cleanup_ignored_files(path, item.dep.name, parent_ignores)
         } else {
             if !ensure_dep_at_commit(item.dep.repo, path, item.commit) {
                 fmt.eprintln("Failed to install:", item.dep.name)
                 delete(path)
                 continue
             }
-            cleanup_ignored_files(path)
+            cleanup_ignored_files(path, item.dep.name, parent_ignores)
         }
 
         actual := git_rev_parse(path)
@@ -545,17 +545,25 @@ free_resolved_list :: proc(list: ^[dynamic]Resolved_Dep) {
     delete(list^)
 }
 
-cleanup_ignored_files :: proc(pkg_path: string) {
-    config_path, join_err := filepath.join([]string{pkg_path, CONFIG_FILE}, context.temp_allocator)
-    if join_err != nil do return
+cleanup_ignored_files :: proc(pkg_path: string, dep_name: string, parent_ignores: map[string][dynamic]string) {
+    patterns := make([dynamic]string, context.temp_allocator)
+    if parent_ignores != nil {
+        if arr, ok := parent_ignores[dep_name]; ok {
+            for pattern in arr do append(&patterns, pattern)
+        }
+    }
     
-    if !os.exists(config_path) do return
+    config_path, join_err := filepath.join([]string{pkg_path, CONFIG_FILE}, context.temp_allocator)
+    if join_err == nil && os.exists(config_path) {
+        if cfg, ok := read_config(config_path); ok {
+            if self_patterns, has_self := cfg.ignores["self"]; has_self {
+                for pattern in self_patterns do append(&patterns, pattern)
+            }
+            config_free(&cfg)
+        }
+    }
 
-    cfg, ok := read_config(config_path)
-    if !ok do return
-    defer config_free(&cfg)
-
-    if len(cfg.ignores) == 0 do return
+    if len(patterns) == 0 do return
 
     w := os.walker_create(pkg_path)
     defer os.walker_destroy(&w)
@@ -571,7 +579,7 @@ cleanup_ignored_files :: proc(pkg_path: string) {
         
         matched := false
         base_name := filepath.base(slash_path)
-        for pattern in cfg.ignores {
+        for pattern in patterns {
             is_match, err := filepath.match(pattern, slash_path)
             if err == nil && is_match {
                 matched = true

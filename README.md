@@ -3,7 +3,7 @@
 An **unofficial** open-source package manager for Odin. It is vendor-first and keeps installs local to `vendor/`.
 
 Current versions:
-- odpkg: `v0.6.3.1`
+- odpkg: `v0.6.4`
 - Odin used for build/tests: `dev-2026-06:6fdaedf18`
 
 Principles:
@@ -11,8 +11,11 @@ Principles:
 - Vendoring-first
 - Records `odin_version` on `odpkg init` and warns on mismatch during `add/install/update`
 
-## Patch Notes (v0.6.3.1)
+## Patch Notes (v0.6.4)
 
+- Refactored `[ignore]` configuration to use valid TOML arrays instead of raw strings (Fixes #6).
+- Added support for parent projects to override and declare ignore rules for their dependencies.
+- Added `self = [...]` key in `[ignore]` for self-pruning behavior.
 - Added support for `[ignore]` section in `odpkg.toml` allowing `.gitignore`-style glob rules to prune unwanted files from downloaded packages (Fixes #4). Automatically injects `.gitignore` containing `*` into the vendor dir to prevent accidental commits.
 
 ## Quick Start
@@ -54,7 +57,7 @@ odin build src -out:odpkg
 Linux/macOS:
 
 ```bash
-VERSION=v0.6.3.1
+VERSION=v0.6.4
 ASSET=odpkg-ubuntu-latest
 curl -L -o odpkg "https://github.com/bymehul/odpkg/releases/download/${VERSION}/${ASSET}"
 chmod +x odpkg
@@ -64,7 +67,7 @@ chmod +x odpkg
 Windows (PowerShell):
 
 ```powershell
-$version = "v0.6.3.1"
+$version = "v0.6.4"
 $asset = "odpkg-windows-latest.exe"
 Invoke-WebRequest -Uri "https://github.com/bymehul/odpkg/releases/download/$version/$asset" -OutFile "odpkg.exe"
 .\odpkg.exe --help
